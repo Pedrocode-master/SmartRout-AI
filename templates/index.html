@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>GPS com OpenLayers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.4.0/ol.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/map_controls.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bottom_sheet.css') }}" />
+</head>
+<body>
+
+{% include 'header.html' %}
+
+{% include 'map.html' %}
+
+{% include 'bottom_sheet.html' %}
+
+<!-- =============== SCRIPTS COM ORDEM CORRIGIDA =============== -->
+<script src="https://cdn.jsdelivr.net/npm/ol@7.4.0/dist/ol.js"></script>
+
+<!-- 1. ESSENCIAL: Carregar o bottom_sheet.js primeiro, pois ele define openSheet() -->
+<script src="{{ url_for('static', filename='js/bottom_sheet.js') }}"></script>
+
+<!-- 2. map_init.js e geolocation.js dependem de openSheet() -->
+<script src="{{ url_for('static', filename='js/map_init.js') }}"></script>
+<script src="{{ url_for('static', filename='js/geolocation.js') }}"></script>
+
+<!-- 3. route_logic.js depende de openSheet() e usa map_init.js/geolocation.js -->
+<script src="{{ url_for('static', filename='js/route_logic.js') }}"></script>
+
+<!-- 4. events.js (Geralmente o último, pois usa todas as funções definidas) -->
+<script src="{{ url_for('static', filename='js/events.js') }}"></script>
+
+</body>
+</html>
