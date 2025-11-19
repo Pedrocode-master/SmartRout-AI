@@ -38,24 +38,27 @@ The easiest and most recommended way to run this application is via Google Colab
 
 ---
 🗂️ Code Structure
-seu_projeto_gps/
-├── app.py           # Main Flask application (routes, server, ngrok)
-├── config.py        # Configuration and keys (tokens, ORS API)
-├── utils.py         # Data handling functions (CSV logging)
-├── requirements.txt # Python dependencies (Flask, pyngrok, requests)
-├── templates/
-│   ├── index.html   # Main template (Jinja2)
-│   ├── header.html  # Header/controls component
-│   ├── map.html     # Map container
-│   └── bottom_sheet.html # Route details component
-└── static/
-    ├── css/         # CSS styles
-    │   ├── main.css
-    │   └── ...
-    └── js/          # JavaScript logic (OpenLayers)
-        ├── map_init.js
-        └── ...
-
+/
+├── app.py           # 🚀 Aplicação Flask principal (rotas, servidor, ngrok)
+├── config.py        # ⚙️ Configurações e chaves (tokens, API ORS)
+├── utils.py         # 💾 Funções utilitárias para manipulação de dados (CSV Logger)
+├── requirements.txt # Lista de dependências Python (para instalação local)
+├── templates/       # Pasta para templates HTML (Jinja2)
+│   ├── index.html   # Template principal que integra os demais
+│   ├── header.html  # Componente de cabeçalho e controles
+│   ├── map.html     # Contêiner do mapa OpenLayers
+│   └── bottom_sheet.html # Componente de detalhes da rota (drag-and-drop)
+└── static/          # Pasta para arquivos estáticos (servidos pelo Flask)
+├── css/         # Estilos CSS
+│   ├── main.css
+│   ├── map_controls.css
+│   └── bottom_sheet.css
+└── js/          # Lógica JavaScript (OpenLayers)
+├── map_init.js
+├── geolocation.js
+├── route_logic.js
+├── bottom_sheet.js
+└── events.js
 
 
 ----
