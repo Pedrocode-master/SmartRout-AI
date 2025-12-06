@@ -12,5 +12,5 @@ CSV_LOCK = Lock() # Lock para garantir escrita atômica no CSV
 
 # Chaves de API (ATENÇÃO: KEYS EXPOSTAS APENAS PARA ESTE AMBIENTE PRIVADO)
 # É altamente recomendável mover estas chaves para variáveis de ambiente ou secrets em produção.
-# ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjhlZDMwNDE4NjY2NjQ1NjY5ODhjODJhYWRhOGMwNjhiIiwiaCI6Im11cm11cjY0In0="
+ORS_API_KEY = "PUT_YOUR_KEY"
 NGROK_AUTH_TOKEN = "PUT_YOUR_KEY"
