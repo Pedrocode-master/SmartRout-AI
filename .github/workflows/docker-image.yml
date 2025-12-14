@@ -1,0 +1,24 @@
+name: SmartRoad CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Build Docker images
+      run: docker-compose build
+    
+    - name: Run tests (placeholder)
+      run: echo "Testes seriam executados aqui"
+    
+    - name: Success message
+      run: echo "✅ Build completado com sucesso!"
