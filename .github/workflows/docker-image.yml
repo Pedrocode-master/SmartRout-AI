@@ -15,7 +15,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Build Docker images
-      run: docker compose --build
+      run: docker compose build
     
     - name: Run tests (placeholder)
       run: echo "Testes seriam executados aqui"
