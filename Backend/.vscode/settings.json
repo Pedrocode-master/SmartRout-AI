@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "/home/pedro/Projetos/MeuProjetoGPS/venv/bin/python",
+    "python.analysis.extraPaths": [
+        "/home/pedro/Projetos/MeuProjetoGPS/venv/lib/python3.12/site-packages"
+    ],
+    "python.languageServer": "Pylance"
+}

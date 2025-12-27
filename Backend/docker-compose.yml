@@ -1,0 +1,74 @@
+version: '3.8'
+
+# ========================================================================
+# 1. SERVIÇOS (Containers que serão executados)
+# ========================================================================
+services:
+  web:
+    build: .
+    container_name: smartroad_app_flask
+    ports:
+      - "5000:5000"
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    # Conecta o serviço Flask à rede de monitoramento e depende do Redis
+    networks:
+      - smartroad-network
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:7-alpine"
+    container_name: smartroad_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - smartroad-network # Conecta o Redis para que ele possa ser acessado pela 'web'
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    # Mapeamento do arquivo de configuração do Prometheus (você precisa criar este arquivo)
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - smartroad-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - smartroad-network
+    depends_on:
+      - prometheus
+
+# ========================================================================
+# 2. VOLUMES (Para persistência de dados)
+# ========================================================================
+volumes:
+  redis_data: {}
+  prometheus_data: {} # Garante que estes volumes sejam inicializados corretamente
+  grafana_data: {}
+
+# ========================================================================
+# 3. REDES (Para comunicação entre serviços)
+# ========================================================================
+networks:
+  smartroad-network:
+    driver: bridge

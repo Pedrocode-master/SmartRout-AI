@@ -1,0 +1,751 @@
+import requests
+import json
+import logging
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+from prometheus_flask_exporter import PrometheusMetrics
+from utils.route_optimizer import RouteOptimizer
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import bcrypt
+from datetime import timedelta
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# ========================================================================
+# CARREGAMENTO SEGURO DE VARIÁVEIS DE AMBIENTE
+# ========================================================================
+load_dotenv()
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# ========================================================================
+# PROMETHEUS METRICS
+# ========================================================================
+metrics = PrometheusMetrics.for_app_factory()
+metrics.info('app_info', 'Informações sobre o aplicativo de roteamento', version='2.0.0')
+
+# ========================================================================
+# VALIDAÇÃO DE CHAVES DE API
+# ========================================================================
+ORS_API_KEY = os.environ.get('ORS_API_KEY')
+if not ORS_API_KEY:
+    raise ValueError(
+        "⚠️ ORS_API_KEY não encontrada!\n"
+        "Configure com: export ORS_API_KEY='sua_chave' no ~/.bashrc ou no .env"
+    )
+
+# Chaves para otimização (opcional)
+TOMTOM_API_KEY = os.environ.get('TOMTOM_API_KEY')
+OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
+
+optimization_available = all([TOMTOM_API_KEY, OPENWEATHER_API_KEY, GROQ_API_KEY])
+
+if not optimization_available:
+    logger.warning("⚠️ Chaves de otimização ausentes. Modo de otimização desabilitado.")
+    logger.warning("   Para habilitar: configure TOMTOM_API_KEY, OPENWEATHER_API_KEY e GROQ_API_KEY no .env")
+    route_optimizer = None
+else:
+    route_optimizer = RouteOptimizer(
+        tomtom_key=TOMTOM_API_KEY,
+        openweather_key=OPENWEATHER_API_KEY,
+        groq_key=GROQ_API_KEY
+    )
+    logger.info("✅ RouteOptimizer inicializado com TomTom + OpenWeather + Groq")
+
+# URLs do ORS
+ORS_API_URL = "https://api.openrouteservice.org/v2/directions/driving-car"
+ORS_USE_BEARER = os.environ.get('ORS_USE_BEARER', '0') == '1'
+
+# ========================================================================
+# CONFIGURAÇÃO DO FLASK
+# ========================================================================
+app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
+
+# CORS configurado com origens específicas
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5000').split(',')
+CORS(app, origins=allowed_origins, supports_credentials=True)
+
+metrics.init_app(app)
+
+# Rate Limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# --- CONFIGURAÇÕES VIA VARIÁVEIS DE AMBIENTE (Segurança) ---
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL', 
+    'sqlite:///gps.db'  # SQLite por padrão para facilitar desenvolvimento
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# JWT Secret Key - OBRIGATÓRIA
+JWT_SECRET = os.environ.get('JWT_SECRET_KEY')
+if not JWT_SECRET:
+    raise ValueError(
+        "⚠️ JWT_SECRET_KEY não encontrada!\n"
+        "Configure com: export JWT_SECRET_KEY='sua_chave_secreta_aleatoria' no .env\n"
+        "Gere uma chave com: python -c 'import secrets; print(secrets.token_hex(32))'"
+    )
+
+app.config['JWT_SECRET_KEY'] = JWT_SECRET
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+
+# ========================================================================
+# MODELOS DE BANCO DE DADOS
+# ========================================================================
+class User(db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.LargeBinary, nullable=False)  # Armazena como bytes
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    
+    def set_password(self, password):
+        """Hash da senha com bcrypt"""
+        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    
+    def check_password(self, password):
+        """Verifica se a senha está correta"""
+        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash)
+
+class LoginHistory(db.Model):
+    __tablename__ = 'login_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(500), nullable=False)
+    login_at = db.Column(db.DateTime, default=db.func.now())
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(200), nullable=True)
+    
+    # Relacionamento
+    user = db.relationship('User', backref=db.backref('login_history', lazy=True))
+
+# ========================================================================
+# FUNÇÕES AUXILIARES
+# ========================================================================
+def _get_traffic_color(traffic_factor: float) -> str:
+    """Retorna a cor baseada no fator de tráfego."""
+    if traffic_factor >= 2.0:
+        return "#DC2626"  # Vermelho Escuro
+    elif traffic_factor >= 1.5:
+        return "#F59E0B"  # Laranja
+    elif traffic_factor >= 1.2:
+        return "#FBBF24"  # Amarelo
+    else:
+        return "#10B981"  # Verde
+
+def _get_traffic_level(traffic_factor: float) -> str:
+    """Retorna o nível textual do tráfego."""
+    if traffic_factor >= 2.0:
+        return "severe"
+    elif traffic_factor >= 1.5:
+        return "heavy"
+    elif traffic_factor >= 1.2:
+        return "moderate"
+    else:
+        return "free"
+
+def _calculate_bbox(coordinates: list) -> list:
+    """Calcula a caixa delimitadora da rota."""
+    if not coordinates:
+        return [0, 0, 0, 0]
+    lons = [c[0] for c in coordinates]
+    lats = [c[1] for c in coordinates]
+    return [min(lons), min(lats), max(lons), max(lats)]
+
+def validate_coordinates(coordinates):
+    """Valida formato de coordenadas"""
+    if not coordinates or not isinstance(coordinates, list) or len(coordinates) < 2:
+        return False, "Coordenadas de rota ausentes ou incompletas."
+    
+    try:
+        for pt in coordinates:
+            if not (isinstance(pt, (list, tuple)) and len(pt) >= 2):
+                return False, 'Formato de coordenada inválido'
+            lon, lat = float(pt[0]), float(pt[1])
+            # Validação de ranges
+            if not (-180 <= lon <= 180) or not (-90 <= lat <= 90):
+                return False, 'Coordenadas fora do range válido'
+    except (ValueError, TypeError):
+        return False, "Formato de coordenadas inválido. Use [[lon, lat], [lon, lat]]"
+    
+    return True, None
+
+def validate_address(address):
+    """Valida endereço de entrada"""
+    if not address or not isinstance(address, str):
+        return False, "Endereço inválido"
+    
+    # Limite de tamanho
+    if len(address) > 500:
+        return False, "Endereço muito longo (máximo 500 caracteres)"
+    
+    # Remove caracteres perigosos
+    address_clean = address.strip()
+    if len(address_clean) < 3:
+        return False, "Endereço muito curto"
+    
+    return True, address_clean
+
+# ========================================================================
+# ENDPOINTS - AUTENTICAÇÃO
+# ========================================================================
+@app.route('/api/register', methods=['POST'])
+@limiter.limit("5 per hour")  # Limite agressivo para prevenir spam
+def register():
+    """Registra novo usuário"""
+    data = request.json
+    
+    if not data:
+        return jsonify({"erro": "Dados ausentes"}), 400
+    
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+    
+    # Validações
+    if not username or len(username) < 3:
+        return jsonify({"erro": "Username deve ter pelo menos 3 caracteres"}), 400
+    
+    if len(username) > 80:
+        return jsonify({"erro": "Username muito longo (máximo 80 caracteres)"}), 400
+    
+    if not password or len(password) < 8:
+        return jsonify({"erro": "Senha deve ter pelo menos 8 caracteres"}), 400
+    
+    # Verifica se usuário já existe
+    if User.query.filter_by(username=username).first():
+        return jsonify({"erro": "Usuário já existe"}), 409
+    
+    try:
+        # Cria novo usuário
+        new_user = User(username=username)
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        logger.info(f"Novo usuário registrado: {username}")
+        return jsonify({"mensagem": "Usuário criado com sucesso"}), 201
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao criar usuário: {e}")
+        return jsonify({"erro": "Erro ao criar usuário"}), 500
+
+@app.route('/api/login', methods=['POST'])
+@limiter.limit("10 per minute")  # Rate limit para prevenir brute force
+def login():
+    """Autentica usuário e retorna token JWT"""
+    data = request.json
+    
+    if not data:
+        return jsonify({"erro": "Dados ausentes"}), 400
+    
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+    
+    if not username or not password:
+        return jsonify({"erro": "Username e senha são obrigatórios"}), 400
+    
+    user = User.query.filter_by(username=username).first()
+    
+    # Mensagem genérica para não revelar se o usuário existe
+    if not user or not user.check_password(password):
+        logger.warning(f"Tentativa de login falhou para: {username}")
+        return jsonify({"erro": "Credenciais inválidas"}), 401
+    
+    access_token = create_access_token(identity=username)
+    logger.info(f"Login bem-sucedido: {username}")
+    
+    try:
+        login_record = LoginHistory(
+            user_id=user.id,
+            token=access_token,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')[:200]
+        )
+        db.session.add(login_record)
+        db.session.commit()
+        logger.info(f"Login bem-sucedido: {username} (IP: {request.remote_addr})")
+    except Exception as e:
+        logger.error(f"Erro ao registrar histórico de login: {e}")
+
+    return jsonify(access_token=access_token), 200
+
+@app.route('/api/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    """Retorna informações do usuário autenticado"""
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(username=current_user).first()
+    
+    if not user:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    
+    return jsonify({
+        "username": user.username,
+        "created_at": user.created_at.isoformat()
+    }), 200
+
+
+@app.route('/api/me/history', methods=['GET'])
+@jwt_required()
+def get_login_history():
+    """Retorna histórico de logins do usuário autenticado"""
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(username=current_user).first()
+    
+    if not user:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    
+    # Pega últimos 10 logins
+    history = LoginHistory.query.filter_by(user_id=user.id)\
+        .order_by(LoginHistory.login_at.desc())\
+        .limit(10)\
+        .all()
+    
+    return jsonify({
+        "username": user.username,
+        "total_logins": len(user.login_history),
+        "recent_logins": [
+            {
+                "login_at": h.login_at.isoformat(),
+                "ip_address": h.ip_address,
+                "user_agent": h.user_agent[:50] + "..." if len(h.user_agent) > 50 else h.user_agent
+            }
+            for h in history
+        ]
+    }), 200
+# ========================================================================
+# ENDPOINTS - ROTEAMENTO
+# ========================================================================
+@app.route('/rota', methods=['POST'])
+@jwt_required()  # AGORA PROTEGIDA
+@limiter.limit("30 per minute")  # Limite de requisições
+def calcular_rota():
+    """
+    Endpoint de rota com otimização inteligente integrada + visualização de tráfego
+    REQUER AUTENTICAÇÃO JWT
+    """
+    current_user = get_jwt_identity()
+    logger.info(f"[ROTA] Usuário {current_user} solicitando rota...")
+
+    data = request.get_json()
+    if not data or not isinstance(data, dict):
+        return jsonify({"erro": "Payload JSON inválido ou ausente"}), 400
+
+    coordinates = data.get('coordinates')
+    
+    # Validação robusta
+    is_valid, error_msg = validate_coordinates(coordinates)
+    if not is_valid:
+        return jsonify({"erro": error_msg}), 400
+
+    constraints = data.get('constraints', None)
+    origin = {"lat": coordinates[0][1], "lon": coordinates[0][0]}
+    destination = {"lat": coordinates[1][1], "lon": coordinates[1][0]}
+
+    logger.info(f"[ROTA] Coordenadas: {coordinates}")
+    if constraints:
+        logger.info(f"[ROTA] Constraints detectadas: {constraints}")
+
+    # ========================================================================
+    # DECISÃO: USAR OTIMIZAÇÃO (TOMTOM) OU ORS DIRETO?
+    # ========================================================================
+    use_optimization = (
+        constraints and
+        optimization_available and
+        route_optimizer is not None
+    )
+
+    if use_optimization:
+        logger.info("[ROTA] Modo PREMIUM ativado (TomTom + Tráfego em Tempo Real)")
+        try:
+            optimization_result = route_optimizer.optimize_route(
+                origin=(origin['lat'], origin['lon']),
+                destination=(destination['lat'], destination['lon']),
+                constraints=constraints
+            )
+
+            if not optimization_result:
+                logger.warning("[ROTA] Otimização falhou, revertendo para ORS padrão")
+                use_optimization = False
+            else:
+                selected = optimization_result.get('selected_route', {})
+                reasoning = optimization_result.get('reasoning', '')
+                geometry = selected.get('geometry', [])
+
+                if not geometry or len(geometry) < 2:
+                    logger.warning("[ROTA] Geometria inválida do TomTom, revertendo para ORS")
+                    use_optimization = False
+                else:
+                    logger.info(f"[ROTA] Usando geometria do TomTom ({len(geometry)} pontos)")
+
+                    coordinates_geojson = [[p["lon"], p["lat"]] for p in geometry]
+                    distance_m = selected.get('distance_km', 0) * 1000
+                    duration_s = selected.get('duration_adjusted_min', 0) * 60
+                    traffic_factor = selected.get('traffic_factor', 1.0)
+                    route_color = _get_traffic_color(traffic_factor)
+
+                    traffic_segment_features = []
+                    raw_segments = selected.get('traffic_segments', [])
+
+                    for seg in raw_segments:
+                        traffic_segment_features.append({
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [
+                                    [seg["start_lon"], seg["start_lat"]],
+                                    [seg["end_lon"], seg["end_lat"]]
+                                ]
+                            },
+                            "properties": {
+                                "feature_type": "traffic_segment",
+                                "color": seg.get("color", "#00FF00"),
+                                "status": seg.get("status", "light"),
+                                "speed_ratio": seg.get("speed_ratio", 1.0)
+                            }
+                        })
+
+                    geojson_data = {
+                        "type": "FeatureCollection",
+                        "features": [
+                            {
+                                "type": "Feature",
+                                "geometry": {
+                                    "type": "LineString",
+                                    "coordinates": coordinates_geojson
+                                },
+                                "properties": {
+                                    "feature_type": "route_reference",
+                                    "summary": {
+                                        "distance": distance_m,
+                                        "duration": duration_s
+                                    },
+                                    "segments": [{
+                                        "distance": distance_m,
+                                        "duration": duration_s,
+                                        "steps": []
+                                    }],
+                                    "optimization": {
+                                        "enabled": True,
+                                        "source": "tomtom",
+                                        "reasoning": reasoning,
+                                        "weather": selected.get('weather_description', ''),
+                                        "traffic_factor": traffic_factor,
+                                        "weather_factor": selected.get('weather_factor', 1.0),
+                                        "duration_base_min": selected.get('duration_base_min', 0),
+                                        "duration_adjusted_min": selected.get('duration_adjusted_min', 0),
+                                        "constraints_applied": constraints,
+                                        "route_color": "rgba(0,0,0,0)" if traffic_segment_features else route_color,
+                                        "traffic_level": _get_traffic_level(traffic_factor)
+                                    }
+                                }
+                            },
+                            *traffic_segment_features
+                        ],
+                        "bbox": _calculate_bbox(coordinates_geojson),
+                        "metadata": {
+                            "attribution": "TomTom",
+                            "service": "routing",
+                            "query": {
+                                "coordinates": [[origin['lon'], origin['lat']], [destination['lon'], destination['lat']]],
+                                "profile": "driving-car",
+                                "format": "geojson"
+                            }
+                        }
+                    }
+
+                    logger.info(f"[ROTA] GeoJSON montado: rota base + {len(traffic_segment_features)} segmentos coloridos")
+                    return jsonify(geojson_data)
+                
+        except Exception as e:
+            logger.exception(f"[ROTA] Erro durante otimização: {e}")
+            logger.warning("[ROTA] Revertendo para modo ORS padrão")
+            use_optimization = False
+
+    # ========================================================================
+    # FALLBACK: Modo ORS padrão (sem otimização)
+    # ========================================================================
+    if not use_optimization:
+        logger.info("[ROTA] Modo BÁSICO (ORS direto, sem otimização de tráfego)")
+
+        ors_payload = {
+            "coordinates": coordinates,
+            "profile": "driving-car",
+            "format": "geojson",
+            "units": "m",
+            "instructions": False
+        }
+
+        # Modo de teste
+        if os.environ.get('DISABLE_ORS') == '1':
+            logger.info('[ROTA] DISABLE_ORS=1 ativado – retornando GeoJSON falso')
+            fake_geojson = {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [coordinates[0], coordinates[1]]
+                    },
+                    "properties": {
+                        "optimization": {"enabled": False, "source": "ors_fallback"}
+                    }
+                }],
+            }
+            return jsonify(fake_geojson)
+
+        try:
+            headers = {}
+            if ORS_USE_BEARER:
+                headers['Authorization'] = f"Bearer {ORS_API_KEY}"
+            else:
+                headers['Authorization'] = ORS_API_KEY
+            headers['Content-Type'] = 'application/json'
+
+            logger.info("[ROTA] Enviando payload ao ORS...")
+
+            response = requests.post(
+                f"{ORS_API_URL}/geojson",
+                json=ors_payload,
+                headers=headers,
+                timeout=15
+            )
+
+            response.raise_for_status()
+            geojson_data = response.json()
+
+            if 'features' in geojson_data and len(geojson_data['features']) > 0:
+                if 'properties' not in geojson_data['features'][0]:
+                    geojson_data['features'][0]['properties'] = {}
+                geojson_data['features'][0]['properties']['optimization'] = {
+                    "enabled": False,
+                    "source": "ors_fallback"
+                }
+
+            logger.info("[ROTA] Rota recebida com sucesso (modo básico).")
+            return jsonify(geojson_data)
+
+        except requests.exceptions.Timeout:
+            logger.error("[ERRO] Timeout ao conectar com ORS")
+            return jsonify({"erro": "Timeout na API de roteamento"}), 504
+
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(f"[ERRO HTTP] {http_err}")
+            try:
+                error_detail = response.json()
+            except:
+                error_detail = {"message": str(http_err)}
+            return jsonify({"erro": "Erro de API ORS", "detalhe": error_detail}), 502
+
+        except Exception as e:
+            logger.exception(f"[ERRO INTERNO] Falha ao processar rota: {e}")
+            return jsonify({"erro": "Erro interno ao processar rota"}), 500
+
+@app.route('/geocoding', methods=['POST'])
+@jwt_required()  # AGORA PROTEGIDA
+@limiter.limit("20 per minute")
+def geocode_address():
+    """Converte um endereço (string) em coordenadas (lon, lat) usando o ORS Geocoding."""
+    current_user = get_jwt_identity()
+    data = request.get_json()
+    
+    if not data or not isinstance(data, dict):
+        return jsonify({"erro": "Payload JSON inválido ou ausente"}), 400
+
+    address = data.get('address')
+    
+    # Validação robusta
+    is_valid, result = validate_address(address)
+    if not is_valid:
+        return jsonify({"erro": result}), 400
+    
+    address = result  # Endereço limpo
+
+    logger.info(f"[GEOCODING ORS] Usuário {current_user} buscando: {address}")
+
+    geocode_url = "https://api.openrouteservice.org/geocode/search"
+
+    headers = {}
+    if ORS_USE_BEARER:
+        headers['Authorization'] = f"Bearer {ORS_API_KEY}"
+    else:
+        headers['Authorization'] = ORS_API_KEY
+    headers['Accept'] = 'application/json'
+
+    params = {
+        'text': address,
+        'boundary.country': 'BRA',
+        'size': 1
+    }
+
+    try:
+        response = requests.get(
+            geocode_url, params=params, headers=headers, timeout=10
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        features = result.get('features') if isinstance(result, dict) else None
+        if features:
+            coords = features[0].get('geometry', {}).get('coordinates', [])
+            if len(coords) >= 2:
+                lon, lat = coords[0], coords[1]
+                logger.info(f"[GEOCODING ORS] Sucesso: {address} -> ({lat}, {lon})")
+                return jsonify({"lon": lon, "lat": lat}), 200
+            else:
+                logger.warning(f"[GEOCODING ORS] Geometria inválida no resultado para: {address}")
+                return jsonify({"erro": "Geometria inválida retornada pela API"}), 502
+        else:
+            logger.warning(f"[GEOCODING ORS] Endereço não encontrado: {address}")
+            return jsonify({"erro": "Endereço não encontrado ou inválido"}), 404
+
+    except requests.exceptions.Timeout:
+        logger.error("[ERRO] Timeout ao conectar com ORS Geocoding")
+        return jsonify({"erro": "Timeout na API de geocodificação"}), 504
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"[ERRO HTTP GEO] {http_err}")
+        try:
+            error_detail = response.json()
+        except:
+            error_detail = {"message": str(http_err)}
+        return jsonify({"erro": "Erro de API ORS Geocoding", "detalhe": error_detail}), 502
+
+    except Exception as e:
+        logger.exception(f"[ERRO INTERNO GEO] Falha ao geocodificar: {e}")
+        return jsonify({"erro": "Erro interno de geocodificação"}), 500
+
+# ========================================================================
+# ENDPOINTS - HEALTH CHECK E MONITORAMENTO
+# ========================================================================
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check para Kubernetes/Docker"""
+    try:
+        # Testa conexão com banco
+        db.session.execute('SELECT 1')
+        db_status = "ok"
+    except Exception as e:
+        logger.error(f"Health check falhou no banco: {e}")
+        db_status = "error"
+    
+    return jsonify({
+        "status": "ok" if db_status == "ok" else "degraded",
+        "database": db_status,
+        "optimization": "enabled" if optimization_available else "disabled"
+    }), 200 if db_status == "ok" else 503
+
+@app.route('/', methods=['GET'])
+def index():
+    ngrok_url = os.environ.get('NGROK_URL', None)
+    try:
+        return render_template('index.html', ngrok_url=ngrok_url)  # ← COLOQUE ISSO
+    except Exception as e:
+        logger.error(f"Erro ao servir index.html: {e}")
+        return "Erro interno do servidor ao carregar a página.", 500
+    #return jsonify({
+    #    "name": "GPS Routing API",
+    #    "version": "2.0.0",
+    #    "endpoints": {
+    #        "auth": {
+    #            "register": "POST /api/register",
+    #            "login": "POST /api/login",
+    #            "me": "GET /api/me [requer token]"
+    #        },
+    #        "routing": {
+     #           "route": "POST /rota [requer token]",
+     #           "geocoding": "POST /geocoding [requer token]"
+    #        },
+    #        "monitoring": {
+    #            "health": "GET /health",
+    #            "metrics": "GET /metrics"
+    #        }
+    #    },
+    #    "authentication": "JWT Bearer Token",
+    #    "documentation": "https://github.com/seu-repo/gps-api"
+    #}), 200
+
+# ========================================================================
+# TRATAMENTO DE ERROS GLOBAL
+# ========================================================================
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"erro": "Endpoint não encontrado"}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Erro interno: {error}")
+    return jsonify({"erro": "Erro interno do servidor"}), 500
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({"erro": "Limite de requisições excedido. Tente novamente mais tarde."}), 429
+
+# ========================================================================
+# INICIALIZAÇÃO DO SERVIDOR
+# ========================================================================
+def init_db():
+    """Inicializa o banco de dados"""
+    with app.app_context():
+        db.create_all()
+        logger.info("✅ Tabelas do banco de dados criadas/verificadas")
+        
+        # Cria usuário admin padrão se não existir (apenas para desenvolvimento)
+        if not User.query.filter_by(username='admin').first():
+            admin = User(username='admin')
+            admin.set_password('admin123')  # MUDE ISSO EM PRODUÇÃO!
+            db.session.add(admin)
+            db.session.commit()
+            logger.warning("⚠️ Usuário admin criado com senha padrão (MUDE EM PRODUÇÃO!)")
+
+if __name__ == '__main__':
+    # Inicializa banco de dados
+    init_db()
+    
+    # Configurações
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    
+    if debug_mode:
+        logger.warning("⚠️ MODO DEBUG ATIVADO - NÃO USE EM PRODUÇÃO!")
+    
+    logger.info(f"🚀 Servidor iniciando na porta {port}")
+    logger.info("📋 Endpoints disponíveis:")
+    logger.info("   GET  /              - Informações da API")
+    logger.info("   GET  /health        - Health check")
+    logger.info("   POST /api/register  - Registro de usuários")
+    logger.info("   POST /api/login     - Login e obtenção de token")
+    logger.info("   GET  /api/me        - Informações do usuário autenticado")
+    logger.info("   POST /geocoding     - Geocodificação de endereços [requer token]")
+    logger.info("   POST /rota          - Cálculo de rota [requer token]")
+    
+    if optimization_available:
+        logger.info("   ✨ Otimização inteligente: ATIVADA")
+    else:
+        logger.info("   ⚠️ Otimização inteligente: DESATIVADA (chaves ausentes)")
+    
+    logger.info(f"   🔐 CORS configurado para: {allowed_origins}")
+    logger.info(f"   🗄️ Banco de dados: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)

@@ -1,0 +1,228 @@
+/* static/css/bottom_sheet.css */
+/* Estilos para o componente Bottom Sheet (Agora baseado em transform: translateY) */
+
+/* Altura da área visível quando minimizada (Min Snap Point) */
+:root {
+    --sheet-height-min: 70px;
+    --sheet-height-medium: 50vh; /* Ponto de snap médio */
+    --sheet-height-expanded: 90vh; /* Ponto de snap máximo */
+    /* Distância que a folha deve se mover para exibir a altura mínima (100vh - 70px) */
+    --sheet-offset-min: calc(100vh - var(--sheet-height-min));
+    --sheet-offset-medium: calc(100vh - var(--sheet-height-medium));
+    --sheet-offset-expanded: calc(100vh - var(--sheet-height-expanded));
+}
+
+#sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Define a folha como a altura total da viewport e usa transform para escondê-la/exibi-la */
+  height: 100vh;
+  /* O overflow só é necessário na área de conteúdo. O sheet em si fica aberto */
+  overflow: hidden; 
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 14px rgba(0,0,0,0.15);
+  z-index: 9999;
+  
+  /* Estado inicial: Minimizado (apenas 70px visíveis) */
+  transform: translateY(var(--sheet-offset-min));
+  
+  /* Transição padrão para snaps */
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 1. Classe para desativar a transição durante o arrasto */
+.sheet-transition-off {
+    transition: none !important;
+}
+
+/* 2. Estado Médio */
+#sheet.medium {
+    transform: translateY(var(--sheet-offset-medium));
+}
+
+/* 3. Estado Expandido (Full Screen, deixando 10% para o topo se for 90vh) */
+#sheet.expanded {
+    transform: translateY(var(--sheet-offset-expanded));
+}
+
+/* Handle (Alça de Arrasto) */
+#sheet .handle {
+  width: 36px;
+  height: 5px;
+  background: #ccc;
+  border-radius: 4px;
+  margin: 8px auto;
+  cursor: grab;
+}
+
+/* Conteúdo */
+#sheet-content {
+  /* O padding inferior deve ser maior para considerar a área de segurança do iOS (safe area) */
+  padding: 0 16px 30px 16px; 
+  /* Altura da área de conteúdo: toda a folha menos a alça (16px) */
+  height: calc(100% - 16px); 
+  overflow-y: auto;
+  /* Garante que o conteúdo não seja arrastado, apenas a alça */
+  overscroll-behavior: contain;
+}
+
+/* Botão flutuante para controle do sheet quando minimizado */
+#toggleBtn {
+  position: fixed;
+  bottom: calc(var(--sheet-height-min) + 20px); /* Posição acima da folha minimizada */
+  right: 20px;
+  z-index: 99999;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 50px;
+  background-color: #007bff;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: none; /* Escondido por padrão, mostrado por JS */
+  font-weight: bold;
+}
+
+/* Estilos de Informações de Rota */
+.route-info-container {
+    padding: 10px 16px;
+    border-top: 1px solid #eee;
+}
+.route-info-container p {
+    margin: 4px 0;
+    font-size: 0.9em;
+}
+
+/* Estilos de Status Box */
+.sheet-status-box {
+    padding: 10px 16px;
+    background-color: #f7f7f7;
+    border-top: 1px solid #eee;
+    font-size: 0.85em;
+    color: #555;
+}
+
+/* ===================================================================
+   NOVOS ESTILOS - CONTROLES DE OTIMIZAÇÃO
+   =================================================================== */
+
+.optimization-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 2px solid #e9ecef;
+}
+
+.optimization-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.1em;
+  color: #495057;
+  font-weight: 600;
+}
+
+.constraint-group {
+  margin-bottom: 18px;
+}
+
+.constraint-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+  color: #495057;
+}
+
+.constraint-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Checkbox wrapper */
+.checkbox-wrapper,
+.radio-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.checkbox-wrapper:hover,
+.radio-wrapper:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.checkbox-wrapper input[type="checkbox"],
+.radio-wrapper input[type="radio"] {
+  margin-right: 10px;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #007bff;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked ~ span,
+.radio-wrapper input[type="radio"]:checked ~ span {
+  font-weight: 600;
+  color: #007bff;
+}
+
+.checkbox-wrapper span,
+.radio-wrapper span {
+  font-size: 0.9em;
+  color: #495057;
+  user-select: none;
+}
+
+/* Status de otimização */
+.optimization-status {
+  margin-top: 15px;
+  padding: 12px;
+  background: #e7f3ff;
+  border-left: 4px solid #007bff;
+  border-radius: 6px;
+  font-size: 0.9em;
+  color: #004085;
+  line-height: 1.5;
+}
+
+.optimization-status.success {
+  background: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.optimization-status.warning {
+  background: #fff3cd;
+  border-color: #ffc107;
+  color: #856404;
+}
+
+.optimization-status.error {
+  background: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+  #sheet-content {
+    padding: 0 15px 15px;
+  }
+  
+  .checkbox-wrapper,
+  .radio-wrapper {
+    padding: 6px 10px;
+  }
+  
+  .checkbox-wrapper span,
+  .radio-wrapper span {
+    font-size: 0.85em;
+  }
+}

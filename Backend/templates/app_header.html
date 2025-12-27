@@ -1,0 +1,24 @@
+<header>
+  <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
+    
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div><strong>GPS — OpenLayers</strong></div>
+      <button class="btn" id="btn-center">📍 Centralizar</button>
+      <button class="btn" id="btn-follow">▶ Seguir: OFF</button>
+    </div>
+
+    <div id="controls" class="controls">
+      <input id="start" type="text" placeholder="Minha localização (opcional)">
+      <input id="end" type="text" placeholder="Destino">
+      
+      <button id="rota" class="btn" title="Gerar rota">Gerar rota</button>
+      <button id="locate-button" class="btn" aria-label="Minha localização" title="Minha localização">
+          <i class="fas fa-location-arrow"></i>
+      </button>
+      <button id="clear-button" class="btn" aria-label="Limpar rota e marcadores" title="Limpar rota">
+          <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+  </div>
+</header>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS em Tempo Real (OpenLayers)</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.4.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@7.4.0/dist/ol.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/map_controls.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bottom_sheet.css') }}">
+    
+    <!--<script>
+        // Formato Jinja2. Recebe a URL do Flask
+        window.__NGROK_URL = '{{ ngrok_url }}'; 
+    </script> -->
+</head>
+<body>
+    {% include 'app_header.html' %} 
+    <div id="map"></div>
+    {% include 'bottom_sheet.html' %} 
+    
+    <script type="module" src="{{ url_for('static', filename='js/map_data.js') }}"></script> 
+    <script type="module" src="{{ url_for('static', filename='js/ui_utils.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/bottom_sheet.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/map_ui_utils.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/geolocation.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/map_utils.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/route_logic.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/events.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/map_init.js') }}"></script>
+
+
+</body>
+</html>
