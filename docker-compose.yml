@@ -1,0 +1,75 @@
+services:
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: smartroad_backend
+    ports:
+      - "5000:5000"
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - smartroad-network
+    depends_on:
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartroad_frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - smartroad-network
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartroad_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - smartroad-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - smartroad-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - smartroad-network
+    depends_on:
+      - prometheus
+
+volumes:
+  redis_data: {}
+  prometheus_data: {}
+  grafana_data: {}
+
+networks:
+  smartroad-network:
+    driver: bridge
