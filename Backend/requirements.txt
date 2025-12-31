@@ -17,4 +17,5 @@ groq
 pandas
 redis
 prometheus-flask-exporter==0.23.0
+geopy==2.4.1
 
