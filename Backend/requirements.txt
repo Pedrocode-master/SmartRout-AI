@@ -19,3 +19,4 @@ redis
 prometheus-flask-exporter==0.23.0
 geopy==2.4.1
 SQLAlchemy==2.0.45
+Flask-SQLAlchemy==3.1.1
