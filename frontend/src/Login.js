@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import app_API from 'config.js';
+import app_API from './config.js';
 
 const Login = ({ setToken, setShowRegister }) => {  // ← Adicione setShowRegister
   const [username, setUsername] = useState('');
