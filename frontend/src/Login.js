@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import app_API from 'config.js';
 
 const Login = ({ setToken, setShowRegister }) => {  // ← Adicione setShowRegister
   const [username, setUsername] = useState('');
@@ -25,7 +26,7 @@ const Login = ({ setToken, setShowRegister }) => {  // ← Adicione setShowRegis
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch(`${app_API}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
