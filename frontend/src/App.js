@@ -3,6 +3,9 @@ import Login from './Login';
 import Register from './Register';  // ← NOVO
 import './App.css';
 
+const app_API= process.env.REACT_APP_BACKEND_URL
+
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [showRegister, setShowRegister] = useState(false);  // ← NOVO
@@ -35,7 +38,7 @@ function App() {
           
           <div className="map-wrapper">
             <iframe 
-              src={`http://localhost:5000?token=${token}`}
+              src={`${app_API}?token=${token}`}
               title="GPS Map"
               style={{ width: '100%', height: 'calc(100vh - 60px)', border: 'none' }}
             />
@@ -53,5 +56,5 @@ function App() {
   );
 }
 
-
 export default App;
+
