@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Login from './Login';
 import Register from './Register';  // ← NOVO
 import './App.css';
-
-const app_API= process.env.REACT_APP_BACKEND_URL
+import app_API from 'config.js';
 
 
 function App() {
