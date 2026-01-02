@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Login from './Login';
 import Register from './Register';  // ← NOVO
 import './App.css';
-import app_API from 'config.js';
+import app_API from './config.js';
 
 
 function App() {
