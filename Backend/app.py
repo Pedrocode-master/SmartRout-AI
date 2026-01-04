@@ -729,14 +729,15 @@ def init_db():
             db.session.commit()
             logger.warning("⚠️ Usuário admin criado com senha padrão (MUDE EM PRODUÇÃO!)")
 
+# ⚠️ Inicializa o banco sempre, mesmo quando rodando com gunicorn
+init_db()
+
 if __name__ == '__main__':
-    # Inicializa banco de dados
-    init_db()
-    
-    # Configurações
+    # Configurações apenas para rodar localmente
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
-    
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+
     if debug_mode:
         logger.warning("⚠️ MODO DEBUG ATIVADO - NÃO USE EM PRODUÇÃO!")
     
