@@ -1,7 +1,7 @@
 import requests
 import json
 import logging
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
@@ -12,6 +12,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import bcrypt
 from datetime import timedelta
 from flask_limiter import Limiter
+from sqlalchemy import text
 from flask_limiter.util import get_remote_address
 
 # ========================================================================
@@ -72,7 +73,16 @@ app = Flask(__name__, static_url_path='/static', static_folder='static', templat
 
 # CORS configurado com origens específicas
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5000').split(',')
-CORS(app, origins=allowed_origins, supports_credentials=True)
+
+CORS(
+    app,
+    resources={r"/*": {"origins": allowed_origins}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
+
+logger.info(f"🔐 CORS configurado para: {allowed_origins}")
 
 metrics.init_app(app)
 
@@ -644,7 +654,7 @@ def health_check():
     """Health check para Kubernetes/Docker"""
     try:
         # Testa conexão com banco
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         db_status = "ok"
     except Exception as e:
         logger.error(f"Health check falhou no banco: {e}")
