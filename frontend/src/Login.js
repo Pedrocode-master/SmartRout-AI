@@ -28,10 +28,14 @@ const Login = ({ setToken, setShowRegister }) => {  // ← Adicione setShowRegis
     try {
       const response = await fetch(`${app_API}/api/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username.trim(), password }),
+        credentials: 'include' // ✅ importante para cookies/CORS se necessário
       });
 
+  
       const data = await response.json();
 
       if (response.ok) {
