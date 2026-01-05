@@ -26,7 +26,7 @@ const Login = ({ setToken, setShowRegister }) => {  // ← Adicione setShowRegis
 
     setLoading(true);
     try {
-      const response = await fetch(`${app_API}/api/login`, {
+      const response = await fetch(`app_API/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
