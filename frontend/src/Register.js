@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import app_API from './config.js';
+
 
 const Register = ({ setShowRegister }) => {
   const [username, setUsername] = useState('');
