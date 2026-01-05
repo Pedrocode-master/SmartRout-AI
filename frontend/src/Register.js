@@ -33,7 +33,7 @@ const Register = ({ setShowRegister }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('app_API', {
+      const response = await fetch('${app_API}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
