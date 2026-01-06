@@ -140,7 +140,7 @@ export function disableFollowOnMapDrag() {
 
 // 🚨 ALTERAÇÃO: função agora só inicia o watch (sem getCurrentPosition)
 export function getCurrentOnceAndStartWatch(forceCenter = false) {
-  startWatching(forceCenter);
+    initMapWithCurrentPosition(forceCenter);
 }
 
 export function stopWatching() {
@@ -163,6 +163,31 @@ export function toggleFollow() {
         btnFollow.textContent = isFollowing() ? '▶ Seguir: ON' : '▶ Seguir: OFF';
     }
 }
+
+export function initMapWithCurrentPosition(forceCenter = true) {
+    if (!('geolocation' in navigator)) { 
+        updateStatus('Geolocation não suportado.');
+        return; 
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            handlePosition(pos, forceCenter); 
+            if (!getMapInstance()) {
+                createMap(); // ⚠️ certifique-se de ter a função de criação do mapa
+            }
+            if (!getWatchId()) {
+                startWatching();
+            }
+        },
+        (err) => {
+            console.warn('[GPS] Falha ao obter posição inicial:', err.message || err);
+            startWatching();
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+}
+
 
 export function centerMapOnCurrentPos() {
     const currentPos = getCurrentPos();
