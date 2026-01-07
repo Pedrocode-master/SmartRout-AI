@@ -39,6 +39,7 @@ function App() {
             <iframe 
               src={`${app_API}?token=${token}`}
               title="GPS Map"
+              allow="geolocation"
               style={{ width: '100%', height: 'calc(100vh - 60px)', border: 'none' }}
             />
           </div>
