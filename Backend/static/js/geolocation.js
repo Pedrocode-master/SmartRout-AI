@@ -24,6 +24,7 @@ import {
 
 // Threshold (meters) under which we consider a GPS reading 'reliable' for routing
 const GPS_RELIABLE_THRESHOLD = 150; // meters
+const ENABLE_AUTO_CENTER_ON_START = true;
 
 // 🚨 NOVO (mínimo necessário): controla primeira leitura
 let hasInitialFix = false;
@@ -72,15 +73,15 @@ function handlePosition(pos, forceInitialCenter = false) {
       accuracyFeature.setGeometry(accuracyGeom);
   }
 
-  // 🚨 ALTERAÇÃO CRÍTICA (mínima):
-  // Primeira leitura SEMPRE centraliza, mesmo com precisão ruim
-  if (!hasInitialFix) {
-      getMapInstance().getView().setCenter(coord);
-      getMapInstance().getView().setZoom(Math.max(16, getMapInstance().getView().getZoom()));
-      hasInitialFix = true;
-      updateStatus(`GPS inicial obtido. Precisão: ${accuracy.toFixed(1)}m.`);
-      return;
+  // 🚨 Centralização inicial (controlável)
+  if (!hasInitialFix && ENABLE_AUTO_CENTER_ON_START) {
+    getMapInstance().getView().setCenter(coord);
+    getMapInstance().getView().setZoom(Math.max(16, getMapInstance().getView().getZoom()));
+    hasInitialFix = true;
+    updateStatus(`GPS inicial obtido. Precisão: ${accuracy.toFixed(1)}m.`);
+    return;
   }
+
 
   // Depois da primeira leitura, aplica as regras normais
   if ((shouldCenter || forceInitialCenter || isFollowing()) && accuracy <= GPS_RELIABLE_THRESHOLD) {
@@ -123,7 +124,7 @@ function startWatching(forceInitialCenter = false) {
   );
 
   setWatchId(id);
-  toggleFollowingState(true);
+  toggleFollowingState(FontFaceSetLoadEvent);
 }
 
 export function disableFollowOnMapDrag() {
@@ -140,7 +141,7 @@ export function disableFollowOnMapDrag() {
 
 // 🚨 ALTERAÇÃO: função agora só inicia o watch (sem getCurrentPosition)
 export function getCurrentOnceAndStartWatch(forceCenter = false) {
-    initMapWithCurrentPosition(forceCenter);
+    startWatching(forceCenter);
 }
 
 export function stopWatching() {
