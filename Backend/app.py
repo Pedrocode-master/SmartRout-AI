@@ -80,7 +80,7 @@ app = Flask(__name__, static_url_path='/static', static_folder='static', templat
 
 
 # CORS configurado com origens específicas
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5000').split(',')
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'https://smartrout-ai.onrender.com,https://smartrout-ai-1.onrender.com').split(',')
 
 CORS(
     app,
