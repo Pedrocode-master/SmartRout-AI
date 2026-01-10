@@ -14,11 +14,18 @@ from datetime import timedelta
 from flask_limiter import Limiter
 from sqlalchemy import text
 from flask_limiter.util import get_remote_address
+from utils.tier_manager import TierManager
+from functools import wraps
+from db import db
+from models import User, LoginHistory
+from pathlib import Path
 
 # ========================================================================
 # CARREGAMENTO SEGURO DE VARIÁVEIS DE AMBIENTE
 # ========================================================================
-load_dotenv()
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+
 
 # Configuração de logging
 logging.basicConfig(
@@ -71,8 +78,9 @@ ORS_USE_BEARER = os.environ.get('ORS_USE_BEARER', '0') == '1'
 # ========================================================================
 app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
 
+
 # CORS configurado com origens específicas
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5000,https://smartrout-ai.onrender.com,https://smartrout-ai-1.onrender.com').split(',')
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5000').split(',')
 
 CORS(
     app,
@@ -113,18 +121,22 @@ if not JWT_SECRET:
 app.config['JWT_SECRET_KEY'] = JWT_SECRET
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 
-db = SQLAlchemy(app)
+db.init_app(app)
 jwt = JWTManager(app)
+tier_manager = TierManager(db.session)
 
 # ========================================================================
 # MODELOS DE BANCO DE DADOS
 # ========================================================================
-class User(db.Model):
+'''class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.LargeBinary, nullable=False)  # Armazena como bytes
+    tier = db.Column(db.String(20), default='free', nullable=False)
+    monthly_requests_count = db.Column(db.Integer, default=0, nullable=False)
+    last_reset_date = db.Column(db.DateTime, default=db.func.now())
     created_at = db.Column(db.DateTime, default=db.func.now())
     
     def set_password(self, password):
@@ -147,7 +159,7 @@ class LoginHistory(db.Model):
     
     # Relacionamento
     user = db.relationship('User', backref=db.backref('login_history', lazy=True))
-
+'''
 # ========================================================================
 # FUNÇÕES AUXILIARES
 # ========================================================================
@@ -216,6 +228,73 @@ def validate_address(address):
     return True, address_clean
 
 # ========================================================================
+# DECORADOR DE TIER LIMITS
+# ========================================================================
+def check_tier_limits(f):
+    """
+    Decorador que valida limites de tier antes de processar requisição
+    Deve ser usado DEPOIS de @jwt_required()
+    
+    Uso:
+    @app.route('/rota', methods=['POST'])
+    @jwt_required()
+    @check_tier_limits  # <-- vem depois do JWT
+    def calcular_rota():
+        ...
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask_jwt_extended import get_jwt_identity
+        from flask import request, jsonify
+        
+        # 1. Pega usuário do JWT
+        current_username = get_jwt_identity()
+        user = User.query.filter_by(username=current_username).first()
+        
+        if not user:
+            return jsonify({"erro": "Usuário não encontrado"}), 404
+        
+        # 2. Pega coordenadas da requisição
+        data = request.get_json()
+        if not data or 'coordinates' not in data:
+            return jsonify({"erro": "Coordenadas ausentes"}), 400
+        
+        coordinates = data.get('coordinates')
+        if not coordinates or len(coordinates) < 2:
+            return jsonify({"erro": "Coordenadas inválidas"}), 400
+        
+        origin = (coordinates[0][1], coordinates[0][0])  # (lat, lon)
+        destination = (coordinates[1][1], coordinates[1][0])
+        
+        # 3. Valida com TierManager
+        can_proceed, error_msg, usage_stats = tier_manager.check_can_make_request(
+            user, origin, destination
+        )
+        
+        if not can_proceed:
+            return jsonify({
+                "erro": error_msg,
+                "usage": usage_stats,
+                "upgrade_required": True
+            }), 403
+        
+        # 4. Executa a função original
+        response = f(*args, **kwargs)
+        
+        # 5. Se deu certo, incrementa contador
+        if isinstance(response, tuple):
+            status_code = response[1] if len(response) > 1 else 200
+        else:
+            status_code = 200
+        
+        if 200 <= status_code < 300:
+            tier_manager.increment_usage(user)
+        
+        return response
+    
+    return decorated_function
+
+# ========================================================================
 # ENDPOINTS - AUTENTICAÇÃO
 # ========================================================================
 @app.route('/api/register', methods=['POST'])
@@ -248,7 +327,10 @@ def register():
         # Cria novo usuário
         new_user = User(username=username)
         new_user.set_password(password)
+        new_user.tier = 'free'  # ← AGORA SIM!
+        new_user.monthly_requests_count = 0
         
+
         db.session.add(new_user)
         db.session.commit()
         
@@ -344,12 +426,26 @@ def get_login_history():
             for h in history
         ]
     }), 200
+
+@app.route('/api/me/usage', methods=['GET'])
+@jwt_required()
+def get_usage_stats():
+    """Retorna estatísticas de uso do tier do usuário"""
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(username=current_user).first()
+    
+    if not user:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    
+    stats = tier_manager.get_usage_stats(user)
+    return jsonify(stats), 200
 # ========================================================================
 # ENDPOINTS - ROTEAMENTO
 # ========================================================================
 @app.route('/rota', methods=['POST'])
 @jwt_required()  # AGORA PROTEGIDA
 @limiter.limit("30 per minute")  # Limite de requisições
+@check_tier_limits 
 def calcular_rota():
     """
     Endpoint de rota com otimização inteligente integrada + visualização de tráfego
@@ -357,6 +453,11 @@ def calcular_rota():
     """
     current_user = get_jwt_identity()
     logger.info(f"[ROTA] Usuário {current_user} solicitando rota...")
+    user = User.query.filter_by(username=current_user).first()
+    tier_config = tier_manager.get_user_tier_config(user)
+    can_use_premium = tier_config['features']['traffic_optimization']
+
+    logger.info(f"[ROTA] User tier: {user.tier}, Premium features: {can_use_premium}")
 
     data = request.get_json()
     if not data or not isinstance(data, dict):
@@ -383,7 +484,8 @@ def calcular_rota():
     use_optimization = (
         constraints and
         optimization_available and
-        route_optimizer is not None
+        route_optimizer is not None and
+        can_use_premium  # Verifica se o usuário pode usar otimização premium
     )
 
     if use_optimization:
@@ -574,6 +676,7 @@ def calcular_rota():
 
 @app.route('/geocoding', methods=['POST'])
 @jwt_required()  # AGORA PROTEGIDA
+#@check_tier_limits # NÃO APLIQUE LIMITES AQUUI
 @limiter.limit("20 per minute")
 def geocode_address():
     """Converte um endereço (string) em coordenadas (lon, lat) usando o ORS Geocoding."""
@@ -715,22 +818,37 @@ def ratelimit_handler(e):
 # ========================================================================
 # INICIALIZAÇÃO DO SERVIDOR
 # ========================================================================
-def init_db():
-    """Inicializa o banco de dados"""
+'''def init_admin():
     with app.app_context():
-        db.create_all()
-        logger.info("✅ Tabelas do banco de dados criadas/verificadas")
-        
-        # Cria usuário admin padrão se não existir (apenas para desenvolvimento)
-        if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin')
-            admin.set_password('admin123')  # MUDE ISSO EM PRODUÇÃO!
-            db.session.add(admin)
-            db.session.commit()
-            logger.warning("⚠️ Usuário admin criado com senha padrão (MUDE EM PRODUÇÃO!)")
+        try:
+            admin = User.query.filter_by(username="admin").first()
+            if not admin:
+                admin = User(
+                    username="admin",
+                    tier="admin"
+                )
+                admin.set_password("admin123")
+                db.session.add(admin)
+                db.session.commit()
+                logger.info("✅ Admin criado com sucesso")
+            else:
+                logger.info("ℹ️ Admin já existe, pulando criação")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.warning(f"⚠️ Erro ao criar admin: {e}")
+
 
 # ⚠️ Inicializa o banco sempre, mesmo quando rodando com gunicorn
-init_db()
+init_admin()'''
+
+# ========================================================================
+# INICIALIZAÇÃO DO BANCO DE DADOS
+# ========================================================================
+with app.app_context():
+    db.create_all()
+    logger.info("✅ Tabelas do banco de dados verificadas/criadas")
+
 
 if __name__ == '__main__':
     # Configurações apenas para rodar localmente
@@ -741,6 +859,8 @@ if __name__ == '__main__':
     if debug_mode:
         logger.warning("⚠️ MODO DEBUG ATIVADO - NÃO USE EM PRODUÇÃO!")
     
+    logger.info(f"📁 Carregando .env de: {env_path.absolute()}")
+    logger.info(f"🔑 JWT_SECRET_KEY encontrada: {'Sim' if os.environ.get('JWT_SECRET_KEY') else 'NÃO'}")
     logger.info(f"🚀 Servidor iniciando na porta {port}")
     logger.info("📋 Endpoints disponíveis:")
     logger.info("   GET  /              - Informações da API")
