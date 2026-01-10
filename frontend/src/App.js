@@ -3,6 +3,7 @@ import Login from './Login';
 import Register from './Register';  // ← NOVO
 import './App.css';
 import app_API from './config.js';
+import TierInfo from './TierInfo';
 
 
 function App() {
@@ -34,7 +35,12 @@ function App() {
             <span>SmartRoute GPS - Autenticado</span>
             <button onClick={handleLogout} className="logout-button">Sair</button>
           </header>
+          <div style={{background: '#f7fafc', padding: '10px'}}>
+            <TierInfo token={token} />
+          </div>
           
+
+
           <div className="map-wrapper">
             <iframe 
               src={`${app_API}?token=${token}`}
