@@ -382,6 +382,24 @@ def login():
 
     return jsonify(access_token=access_token), 200
 
+@app.route('/create-admin-secret-route-123', methods=['POST'])
+def create_admin():
+    # REMOVA ESSA ROTA DEPOIS DE USAR!
+    from werkzeug.security import generate_password_hash
+    
+    username = "admin"
+    password = "SuaSenhaSegura123!"
+    password_hash = generate_password_hash(password)
+    
+    cursor.execute("""
+        INSERT INTO users (username, email, password_hash, is_admin)
+        VALUES (%s, %s, %s, %s)
+    """, (username, "admin@app.com", password_hash, True))
+    
+    conn.commit()
+    return {"message": "Admin criado!"}, 201
+
+            
 @app.route('/api/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
