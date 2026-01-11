@@ -382,22 +382,39 @@ def login():
 
     return jsonify(access_token=access_token), 200
 
-@app.route('/create-admin-secret-route-123', methods=['POST'])
-def create_admin():
-    # REMOVA ESSA ROTA DEPOIS DE USAR!
+@app.route('/register-admin', methods=['POST'])
+def register_admin():
     from werkzeug.security import generate_password_hash
     
-    username = "admin"
-    password = "SuaSenhaSegura123!"
+    data = request.get_json()
+    
+    # Código secreto - MUDE ISSO!
+    SECRET_CODE = "meu-codigo-super-secreto-123"
+    
+    if data.get('secret_code') != SECRET_CODE:
+        return {"error": "Código secreto inválido"}, 403
+    
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+    
+    if not username or not password or not email:
+        return {"error": "Dados incompletos"}, 400
+    
     password_hash = generate_password_hash(password)
     
-    cursor.execute("""
-        INSERT INTO users (username, email, password_hash, is_admin)
-        VALUES (%s, %s, %s, %s)
-    """, (username, "admin@app.com", password_hash, True))
-    
-    conn.commit()
-    return {"message": "Admin criado!"}, 201
+    try:
+        cursor = conn.cursor()  # ou como você acessa o DB
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, is_admin)
+            VALUES (%s, %s, %s, %s)
+        """, (username, email, password_hash, True))
+        conn.commit()
+        cursor.close()
+        
+        return {"message": "Admin criado com sucesso!"}, 201
+    except Exception as e:
+        return {"error": str(e)}, 500
 
             
 @app.route('/api/me', methods=['GET'])
