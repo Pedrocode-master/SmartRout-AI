@@ -342,6 +342,54 @@ def register():
         logger.error(f"Erro ao criar usuário: {e}")
         return jsonify({"erro": "Erro ao criar usuário"}), 500
 
+@app.route('/api/create-first-admin', methods=['POST'])
+def create_first_admin():
+    """
+    Cria o primeiro admin do sistema
+    ⚠️ REMOVA ESTA ROTA DEPOIS DE CRIAR O ADMIN!
+    """
+    data = request.get_json()
+    
+    # Código secreto - MUDE PARA ALGO SEU!
+    SECRET_CODE = "seu-codigo-secreto-xyz-789"
+    
+    if data.get('secret_code') != SECRET_CODE:
+        return jsonify({"erro": "Código secreto inválido"}), 403
+    
+    # Verifica se já existe admin
+    existing_admin = User.query.filter_by(tier='admin').first()
+    if existing_admin:
+        return jsonify({"erro": "Admin já existe no sistema!"}), 400
+    
+    username = data.get('username', 'admin')
+    password = data.get('password', 'admin123')
+    
+    if len(password) < 8:
+        return jsonify({"erro": "Senha deve ter pelo menos 8 caracteres"}), 400
+    
+    try:
+        # Cria o admin usando o mesmo método do /api/register
+        admin_user = User(username=username)
+        admin_user.set_password(password)
+        admin_user.tier = 'admin'  # Define como admin
+        admin_user.monthly_requests_count = 0
+        
+        db.session.add(admin_user)
+        db.session.commit()
+        
+        logger.info(f"✅ ADMIN CRIADO: {username}")
+        
+        return jsonify({
+            "mensagem": "Admin criado com sucesso!",
+            "username": username,
+            "tier": "admin"
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Erro ao criar admin: {e}")
+        return jsonify({"erro": f"Erro ao criar admin: {str(e)}"}), 500
+
 @app.route('/api/login', methods=['POST'])
 @limiter.limit("10 per minute")  # Rate limit para prevenir brute force
 def login():
