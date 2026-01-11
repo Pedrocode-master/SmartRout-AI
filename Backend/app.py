@@ -890,42 +890,6 @@ def ratelimit_handler(e):
 # ⚠️ Inicializa o banco sempre, mesmo quando rodando com gunicorn
 init_admin()'''
 
-# ========================================================================
-# INICIALIZAÇÃO DO BANCO DE DADOS
-# ========================================================================
-with app.app_context():
-    db.create_all()
-    logger.info("✅ Tabelas do banco de dados verificadas/criadas")
-
-# ========================================================================
-# INICIALIZAÇÃO DO ADMIN (SE NÃO EXISTIR)
-# ========================================================================
-def init_admin():
-    """Cria admin padrão se não existir"""
-    with app.app_context():
-        try:
-            admin = User.query.filter_by(username="admin").first()
-            if not admin:
-                admin = User(username="admin")
-                admin.set_password(os.environ.get('ADMIN_PASSWORD', 'Admin@123456'))
-                admin.tier = "admin"
-                admin.monthly_requests_count = 0
-                
-                db.session.add(admin)
-                db.session.commit()
-                logger.info("✅ Admin padrão criado")
-            else:
-                logger.info("ℹ️ Admin já existe")
-        except Exception as e:
-            db.session.rollback()
-            logger.warning(f"⚠️ Erro ao criar admin: {e}")
-
-# Inicializa admin após criar as tabelas
-with app.app_context():
-    db.create_all()
-    logger.info("✅ Tabelas do banco de dados verificadas/criadas")
-    init_admin()  # ← ADICIONE ISSO
-
 
 
 if __name__ == '__main__':
