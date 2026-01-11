@@ -102,11 +102,36 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# --- CONFIGURAÇÕES VIA VARIÁVEIS DE AMBIENTE (Segurança) ---
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL', 
-    'sqlite:///gps.db'  # SQLite por padrão para facilitar desenvolvimento
-)
+# ========================================================================
+# CONFIGURAÇÃO DO BANCO DE DADOS (Supabase PostgreSQL)
+# ========================================================================
+database_url = os.environ.get('DATABASE_URL')
+
+if not database_url:
+    logger.warning("⚠️ DATABASE_URL não encontrada! Usando SQLite local.")
+    database_url = 'sqlite:///gps.db'
+else:
+    # Log para debug (esconde senha)
+    safe_url = database_url.split('@')[0].split(':')[:-1]
+    logger.info(f"🗄️ Banco de dados configurado: postgresql://...@{database_url.split('@')[1] if '@' in database_url else '???'}")
+    
+    # Corrige URL se vier com protocolo errado
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        logger.info("✅ URL corrigida: postgres:// → postgresql://")
+    
+    # Remove +psycopg2 se existir (causa problemas no Render)
+    if '+psycopg2' in database_url:
+        database_url = database_url.replace('+psycopg2', '')
+        logger.info("✅ Removido +psycopg2 da URL")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,  # Testa conexão antes de usar
+    'pool_recycle': 300,    # Recicla conexões a cada 5min (Supabase fecha idle connections)
+}
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # JWT Secret Key - OBRIGATÓRIA
