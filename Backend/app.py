@@ -912,6 +912,7 @@ if __name__ == '__main__':
     logger.info("   GET  /api/me        - Informações do usuário autenticado")
     logger.info("   POST /geocoding     - Geocodificação de endereços [requer token]")
     logger.info("   POST /rota          - Cálculo de rota [requer token]")
+    logger.info("DATABASE_URL =", os.environ.get("DATABASE_URL"))
     
     if optimization_available:
         logger.info("   ✨ Otimização inteligente: ATIVADA")
