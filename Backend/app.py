@@ -127,10 +127,18 @@ else:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,  # Testa conexão antes de usar
-    'pool_recycle': 300,    # Recicla conexões a cada 5min (Supabase fecha idle connections)
-}
+if 'supabase.com' in database_url:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 280,        # Supabase timeout = 300s
+        'pool_size': 5,             # Limite free tier
+        'max_overflow': 10,
+        'pool_timeout': 30,
+        'connect_args': {
+            'connect_timeout': 10,
+            'application_name': 'smartrout-ai',
+            'options': '-c statement_timeout=30000'
+        }
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
