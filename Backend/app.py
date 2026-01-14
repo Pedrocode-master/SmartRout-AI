@@ -139,8 +139,13 @@ if 'supabase.com' in database_url:
             'application_name': 'smartrout-ai',
             'options': '-c statement_timeout=30000'
         }
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    }
+    logger.info("✅ Configurações Supabase aplicadas")
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
 
 # JWT Secret Key - OBRIGATÓRIA
 JWT_SECRET = os.environ.get('JWT_SECRET_KEY')
