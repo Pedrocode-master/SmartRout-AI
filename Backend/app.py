@@ -336,7 +336,7 @@ def check_tier_limits(f):
 # ENDPOINTS - AUTENTICAÇÃO
 # ========================================================================
 @app.route('/api/register', methods=['POST'])
-@limiter.limit("5 per hour")  # Limite agressivo para prevenir spam
+@limiter.limit("5 per minute")  # Limite agressivo para prevenir spam
 def register():
     """Registra novo usuário"""
     data = request.json
