@@ -160,24 +160,6 @@ app.config['JWT_SECRET_KEY'] = JWT_SECRET
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 
 db.init_app(app)
-with app.app_context():
-    try:
-        db.create_all()
-        logger.info("✅ Tabelas verificadas/criadas")
-        
-        # Cria admin se não existir
-        from models import User
-        admin = User.query.filter_by(username="admin").first()
-        if not admin:
-            admin = User(username="admin")
-            admin.set_password("Admin@123456")
-            admin.tier = "admin"
-            admin.monthly_requests_count = 0
-            db.session.add(admin)
-            db.session.commit()
-            logger.info("✅ Admin criado")
-    except Exception as e:
-        logger.warning(f"⚠️ Erro ao inicializar DB: {e}")
 jwt = JWTManager(app)
 tier_manager = TierManager(db.session)
 
