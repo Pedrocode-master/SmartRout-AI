@@ -145,4 +145,61 @@ window.addEventListener('load', () => {
             console.error("❌ Erro Crítico: mapReady disparou, mas a instância do mapa é null.");
         }
     });
+// 🆕 SISTEMA DE TABS MOBILE
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const targetTab = btn.dataset.tab;
+        
+        // Remove active de todos
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        // Ativa o clicado
+        btn.classList.add('active');
+        document.getElementById(`tab-${targetTab}`).classList.add('active');
+    });
+});
+
+// 🆕 SINCRONIZA BOTÕES DUPLICADOS (desktop/mobile)
+function syncButtons() {
+    const pairs = [
+        ['btn-center', 'btn-center-desktop'],
+        ['btn-follow', 'btn-follow-desktop'],
+        ['start', 'start-desktop'],
+        ['end', 'end-desktop'],
+        ['rota', 'rota-desktop']
+    ];
+    
+    pairs.forEach(([mobileId, desktopId]) => {
+        const mobile = document.getElementById(mobileId);
+        const desktop = document.getElementById(desktopId);
+        
+        if (mobile && desktop) {
+            // Sincroniza eventos de clique
+            mobile.addEventListener('click', (e) => {
+                desktop.click();
+            });
+            desktop.addEventListener('click', (e) => {
+                if (e.target === desktop) { // Evita loop infinito
+                    mobile.click();
+                }
+            });
+            
+            // Sincroniza valores de input
+            if (mobile.tagName === 'INPUT') {
+                mobile.addEventListener('input', () => {
+                    desktop.value = mobile.value;
+                });
+                desktop.addEventListener('input', () => {
+                    mobile.value = desktop.value;
+                });
+            }
+        }
+    });
+}
+
+syncButtons();
 });
