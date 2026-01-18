@@ -211,18 +211,114 @@
 }
 
 /* Responsividade */
-@media (max-width: 480px) {
-  #sheet-content {
-    padding: 0 15px 15px;
+/* ===================================================================
+   RESPONSIVIDADE MOBILE - BOTTOM SHEET
+   =================================================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --sheet-height-min: 90px; /* Maior em mobile para mostrar mais info */
+    --sheet-height-medium: 60vh;
+    --sheet-height-expanded: 95vh; /* Quase tela inteira */
   }
   
+  /* Aumenta área de toque do handle */
+  #sheet .handle {
+    width: 50px;
+    height: 6px;
+    margin: 12px auto;
+  }
+  
+  /* Ajusta padding do conteúdo */
+  #sheet-content {
+    padding: 0 16px 40px 16px; /* Mais espaço inferior para safe area */
+  }
+  
+  /* Títulos menores */
+  #sheet-content h3,
+  .optimization-section h4 {
+    font-size: 1em;
+  }
+  
+  /* Resumo da rota em linha */
+  #route-summary {
+    display: flex;
+    justify-content: space-around;
+    gap: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 15px;
+  }
+  
+  #route-summary > div {
+    text-align: center;
+    flex: 1;
+  }
+  
+  #route-summary strong {
+    display: block;
+    font-size: 0.75em;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  
+  #route-summary span {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #007bff;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Controles de otimização maiores */
   .checkbox-wrapper,
   .radio-wrapper {
-    padding: 6px 10px;
+    padding: 12px 14px; /* Maior área de toque */
+    font-size: 0.95em;
+  }
+  
+  .checkbox-wrapper input[type="checkbox"],
+  .radio-wrapper input[type="radio"] {
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
   }
   
   .checkbox-wrapper span,
   .radio-wrapper span {
-    font-size: 0.85em;
+    font-size: 0.95em;
+  }
+  
+  /* Legenda de tráfego compacta */
+  #traffic-legend {
+    padding: 12px;
+  }
+  
+  #traffic-legend h4 {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+  }
+  
+  #traffic-legend > div {
+    gap: 8px;
+    font-size: 0.8em;
+  }
+  
+  #traffic-legend > div > div {
+    gap: 8px;
+  }
+  
+  #traffic-legend > div > div > div:first-child {
+    width: 30px;
+    height: 6px;
+  }
+  
+  /* Botão toggle maior */
+  #toggleBtn {
+    bottom: calc(var(--sheet-height-min) + 15px);
+    right: 15px;
+    padding: 12px 18px;
+    font-size: 0.9em;
   }
 }
