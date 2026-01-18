@@ -135,3 +135,214 @@
   margin-bottom: 8px;
 }
 
+/* ===================================================================
+   RESPONSIVIDADE MOBILE - HEADER E CONTROLES
+   =================================================================== */
+
+@media (max-width: 768px) {
+  /* Header: empilha elementos verticalmente */
+  header {
+    padding: 8px;
+  }
+  
+  header > div {
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+  
+  /* Primeira linha (título + botões GPS) */
+  header > div > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  header > div > div:first-child > div {
+    text-align: center;
+    font-size: 0.9em;
+  }
+  
+  header > div > div:first-child > button {
+    width: 100%;
+    padding: 10px;
+    font-size: 0.9em;
+  }
+  
+  /* Painel de controles de rota */
+  #controls {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+    padding: 10px;
+  }
+  
+  /* Inputs ocupam largura total */
+  #controls input {
+    width: 100% !important;
+    height: 42px; /* Maior para touch */
+    font-size: 16px; /* Previne zoom automático no iOS */
+  }
+  
+  /* Botões em linha (rota + localizar + limpar) */
+  #controls > div {
+    display: flex;
+    gap: 8px;
+  }
+  
+  #rota {
+    flex: 1; /* Ocupa espaço disponível */
+    height: 42px;
+    font-size: 0.9em;
+  }
+  
+  #locate-button,
+  #clear-button {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+  }
+}
+
+/* Telas muito pequenas (<400px) */
+@media (max-width: 400px) {
+  header > div > div:first-child > div strong {
+    font-size: 0.85em;
+  }
+  
+  #controls input {
+    font-size: 14px;
+  }
+  
+  .btn {
+    font-size: 0.85em;
+    padding: 8px 12px;
+  }
+}
+
+/* ===================================================================
+   CONTROLES DE ZOOM - MOBILE
+   =================================================================== */
+
+@media (max-width: 768px) {
+  /* Botões de zoom maiores para touch */
+  .ol-zoom-custom .ol-zoom-in,
+  .ol-zoom-custom .ol-zoom-out,
+  .custom-zoom-buttons button {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 20px;
+  }
+  
+  /* Ajusta posição para não sobrepor header */
+  .ol-zoom-custom {
+    top: 10px;
+    left: 10px;
+  }
+  
+  .custom-zoom-buttons {
+    left: 10px;
+    top: 68px;
+  }
+}
+/* ===================================================================
+   SISTEMA DE TABS MOBILE
+   =================================================================== */
+
+.header-tabs {
+  display: none; /* Oculto em desktop */
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.desktop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  /* 🆕 MOSTRA TABS EM MOBILE */
+  .header-tabs {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  
+  .tab-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: #e9ecef;
+    border-radius: 8px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .tab-btn.active {
+    background: #007bff;
+    color: white;
+  }
+  
+  /* 🆕 ESCONDE VERSÃO DESKTOP */
+  .desktop-header {
+    display: none !important;
+  }
+  
+  /* ESTILOS DOS CONTEÚDOS */
+  #tab-gps {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+  }
+  
+  #tab-gps .btn {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    min-height: 42px;
+  }
+  
+  #tab-route #controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+  
+  #tab-route input {
+    width: 100% !important;
+    height: 42px;
+    font-size: 15px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+  
+  #tab-route #rota {
+    flex: 1;
+    height: 42px;
+    font-size: 0.85em;
+  }
+  
+  #tab-route #locate-button,
+  #tab-route #clear-button {
+    width: 42px;
+    height: 42px;
+  }
+}
