@@ -119,3 +119,62 @@ header {
 .ol-rotate {
     z-index: 1000;
 }
+
+/* ===================================================================
+   RESPONSIVIDADE MOBILE - ELEMENTOS GLOBAIS
+   =================================================================== */
+
+@media (max-width: 768px) {
+  /* Mensagens de feedback */
+  #message-container {
+    max-width: 90%;
+    padding: 12px 18px;
+    font-size: 0.9em;
+  }
+  
+  /* Botões globais maiores */
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.9em;
+    min-height: 42px; /* Padrão iOS touch target */
+  }
+  
+  /* Status box no sheet */
+  .sheet-status-box {
+    padding: 12px;
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 480px) {
+  #message-container {
+    font-size: 0.85em;
+    padding: 10px 15px;
+  }
+  
+  .btn {
+    font-size: 0.85em;
+    padding: 9px 14px;
+  }
+}
+
+/* Landscape mobile (telefones deitados) */
+@media (max-width: 768px) and (orientation: landscape) {
+  :root {
+    --sheet-height-min: 60px;
+    --sheet-height-medium: 70vh;
+    --sheet-height-expanded: 90vh;
+  }
+  
+  header {
+    padding: 6px;
+  }
+  
+  #controls input {
+    height: 38px;
+  }
+  
+  #sheet-content {
+    padding: 0 12px 25px 12px;
+  }
+}
