@@ -1,35 +1,35 @@
 /* static/css/map_controls.css */
 
-/* Estilos para os controles de rota (AGORA INTEGRADO AO HEADER) */
-#controls {
-  /* REMOVIDO: position: absolute; top: 10px; right: 10px; z-index: 1000; */
-  
-  /* NOVO ESTILO: Integração ao Flexbox do Header e aparência de Painel */
+/* ===================================================================
+   ESTILOS BASE - DESKTOP
+   =================================================================== */
+
+/* Painel de controles (versão desktop) */
+#controls,
+#controls-desktop {
   display: flex;
-  flex-direction: row; /* Alinha inputs e botões lado a lado */
+  flex-direction: row;
   align-items: center;
-  gap: 5px; /* Espaço entre os inputs e botões */
-  
-  /* Estilo visual de painel: fundo, borda e sombra */
+  gap: 5px;
   background: white; 
   padding: 8px 10px; 
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
 }
 
-/* Estilo para os inputs dentro do painel #controls */
-#controls input {
+#controls input,
+#controls-desktop input {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
-  width: 130px; /* Largura ajustada */
-  height: 36px; /* Para alinhar com a altura dos botões */
+  width: 130px;
+  height: 36px;
   flex-shrink: 0;
 }
 
-/* O botão #rota precisa ser ajustado */
-#rota {
+#rota,
+#rota-desktop {
   height: 36px;
   white-space: nowrap;
   padding: 0 12px;
@@ -38,8 +38,10 @@
   justify-content: center;
 }
 
-/* Ajuste específico para os botões de ícone (Localizar e Limpar) */
-#clear-button {
+#locate-button,
+#clear-button,
+#locate-button-desktop,
+#clear-button-desktop {
   width: 36px;
   height: 36px;
   padding: 0;
@@ -48,14 +50,181 @@
   justify-content: center;
 }
 
-/* Estilo customizado para o controle de zoom nativo do OpenLayers */
-.ol-zoom-custom {
-  left: 12px; /* posiciona no canto superior esquerdo */
-  top: 10px;  /* distância do topo */
-  right: auto; /* garante que não fique no canto direito */
+/* ===================================================================
+   SISTEMA DE TABS - MOBILE ONLY
+   =================================================================== */
+
+/* 🔧 CORREÇÃO: Esconde tabs e conteúdo mobile no desktop */
+.header-tabs,
+.tab-content {
+  display: none;
 }
 
-/* Ajustes visuais para os botões de zoom (usa classes padrão do OL) */
+/* Desktop header sempre visível por padrão */
+.desktop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* ===================================================================
+   RESPONSIVIDADE MOBILE
+   =================================================================== */
+
+@media (max-width: 768px) {
+  /* 🔧 CORREÇÃO CRÍTICA: Esconde versão desktop completamente */
+  .desktop-header {
+    display: none !important;
+  }
+  
+  /* 🔧 MOSTRA sistema de tabs */
+  .header-tabs {
+    display: flex !important;
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  
+  /* Estilos dos botões de tab */
+  .tab-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: #e9ecef;
+    border-radius: 8px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .tab-btn.active {
+    background: #007bff;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  /* 🔧 Mostra conteúdo da tab ativa */
+  .tab-content.active {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+  
+  /* Header ajustes gerais */
+  header {
+    padding: 8px;
+  }
+  
+  header .header-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+  }
+  
+  /* ===================================================================
+     TAB GPS - Layout horizontal para botões
+     =================================================================== */
+  
+  #tab-gps {
+    flex-direction: row !important;
+    gap: 6px;
+  }
+  
+  #tab-gps .btn {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    min-height: 42px;
+  }
+  
+  /* ===================================================================
+     TAB ROTA - Layout vertical (inputs + botões)
+     =================================================================== */
+  
+  #tab-route #controls {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    padding: 0; /* Remove padding extra */
+    box-shadow: none; /* Remove sombra duplicada */
+    background: transparent;
+  }
+  
+  #tab-route input {
+    width: 100% !important;
+    height: 42px;
+    font-size: 15px; /* Previne zoom no iOS */
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+  
+  /* Linha de botões (Calcular + ícones) */
+  #tab-route #controls > div {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+  }
+  
+  #tab-route #rota {
+    flex: 1;
+    height: 42px;
+    font-size: 0.85em;
+    padding: 0 10px;
+  }
+  
+  #tab-route #locate-button,
+  #tab-route #clear-button {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+  }
+}
+
+/* Telas muito pequenas */
+@media (max-width: 400px) {
+  .tab-btn {
+    font-size: 0.75em;
+    padding: 8px 6px;
+  }
+  
+  #tab-gps .btn {
+    font-size: 0.75em;
+  }
+  
+  #tab-route input {
+    font-size: 14px;
+    height: 40px;
+  }
+  
+  #tab-route #rota {
+    font-size: 0.8em;
+    height: 40px;
+  }
+  
+  #tab-route #locate-button,
+  #tab-route #clear-button {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ===================================================================
+   CONTROLES DE ZOOM DO OPENLAYERS
+   =================================================================== */
+
+.ol-zoom-custom {
+  left: 12px;
+  top: 10px;
+  right: auto;
+}
+
 .ol-zoom-custom .ol-zoom-in,
 .ol-zoom-custom .ol-zoom-out {
   background: rgba(255,255,255,0.95);
@@ -69,14 +238,23 @@
   font-size: 18px;
 }
 
-/* Estilos para o controle de botões de zoom customizados */
+.ol-zoom-custom .ol-zoom-in:hover,
+.ol-zoom-custom .ol-zoom-out:hover {
+  background: white;
+}
+
+.ol-zoom-custom .ol-zoom-in,
+.ol-zoom-custom .ol-zoom-out {
+  margin-bottom: 8px;
+}
+
 .custom-zoom-buttons {
   position: absolute;
   left: 12px;
-  top: 62px; /* posicionado abaixo do controle nativo (zoom in/out) */
+  top: 62px;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* espaçamento cadenciado entre botões */
+  gap: 10px;
   z-index: 1000;
 }
 
@@ -98,135 +276,18 @@
   background: white;
 }
 
-.ol-zoom-custom .ol-zoom-in:hover,
-.ol-zoom-custom .ol-zoom-out:hover {
-  background: white;
-}
-
-/* Control Reset (ZoomToExtent) */
 .ol-zoom-reset {
   left: 12px;
-  top: 114px; /* posicionado abaixo dos controles de zoom */
+  top: 114px;
   right: auto;
 }
-
-
-
-/*.ol-zoom-reset button {
-  background: rgba(255,255,255,0.95);
-  border-radius: 4px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  font-size: 16px;
-}
-*/
 
 .ol-zoom-reset button:hover {
   background: white;
 }
 
-/* Ajuste extra: garante espaçamento entre os botões internos do controle nativo do OL */
-.ol-zoom-custom .ol-zoom-in,
-.ol-zoom-custom .ol-zoom-out {
-  margin-bottom: 8px;
-}
-
-/* ===================================================================
-   RESPONSIVIDADE MOBILE - HEADER E CONTROLES
-   =================================================================== */
-
+/* Zoom buttons maiores em mobile */
 @media (max-width: 768px) {
-  /* Header: empilha elementos verticalmente */
-  header {
-    padding: 8px;
-  }
-  
-  header > div {
-    flex-direction: column !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  
-  /* Primeira linha (título + botões GPS) */
-  header > div > div:first-child {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-  }
-  
-  header > div > div:first-child > div {
-    text-align: center;
-    font-size: 0.9em;
-  }
-  
-  header > div > div:first-child > button {
-    width: 100%;
-    padding: 10px;
-    font-size: 0.9em;
-  }
-  
-  /* Painel de controles de rota */
-  #controls {
-    flex-direction: column;
-    width: 100%;
-    gap: 8px;
-    padding: 10px;
-  }
-  
-  /* Inputs ocupam largura total */
-  #controls input {
-    width: 100% !important;
-    height: 42px; /* Maior para touch */
-    font-size: 16px; /* Previne zoom automático no iOS */
-  }
-  
-  /* Botões em linha (rota + localizar + limpar) */
-  #controls > div {
-    display: flex;
-    gap: 8px;
-  }
-  
-  #rota {
-    flex: 1; /* Ocupa espaço disponível */
-    height: 42px;
-    font-size: 0.9em;
-  }
-  
-  #locate-button,
-  #clear-button {
-    width: 42px;
-    height: 42px;
-    flex-shrink: 0;
-  }
-}
-
-/* Telas muito pequenas (<400px) */
-@media (max-width: 400px) {
-  header > div > div:first-child > div strong {
-    font-size: 0.85em;
-  }
-  
-  #controls input {
-    font-size: 14px;
-  }
-  
-  .btn {
-    font-size: 0.85em;
-    padding: 8px 12px;
-  }
-}
-
-/* ===================================================================
-   CONTROLES DE ZOOM - MOBILE
-   =================================================================== */
-
-@media (max-width: 768px) {
-  /* Botões de zoom maiores para touch */
   .ol-zoom-custom .ol-zoom-in,
   .ol-zoom-custom .ol-zoom-out,
   .custom-zoom-buttons button {
@@ -235,7 +296,6 @@
     font-size: 20px;
   }
   
-  /* Ajusta posição para não sobrepor header */
   .ol-zoom-custom {
     top: 10px;
     left: 10px;
@@ -244,105 +304,5 @@
   .custom-zoom-buttons {
     left: 10px;
     top: 68px;
-  }
-}
-/* ===================================================================
-   SISTEMA DE TABS MOBILE
-   =================================================================== */
-
-.header-tabs {
-  display: none; /* Oculto em desktop */
-}
-
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.desktop-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-@media (max-width: 768px) {
-  /* 🆕 MOSTRA TABS EM MOBILE */
-  .header-tabs {
-    display: flex;
-    gap: 4px;
-    width: 100%;
-    margin-bottom: 8px;
-  }
-  
-  .tab-btn {
-    flex: 1;
-    padding: 10px 8px;
-    border: none;
-    background: #e9ecef;
-    border-radius: 8px;
-    font-size: 0.85em;
-    font-weight: 600;
-    color: #495057;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .tab-btn.active {
-    background: #007bff;
-    color: white;
-  }
-  
-  /* 🆕 ESCONDE VERSÃO DESKTOP */
-  .desktop-header {
-    display: none !important;
-  }
-  
-  /* ESTILOS DOS CONTEÚDOS */
-  #tab-gps {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-  }
-  
-  #tab-gps .btn {
-    flex: 1;
-    padding: 10px 8px;
-    font-size: 0.8em;
-    white-space: nowrap;
-    min-height: 42px;
-  }
-  
-  #tab-route #controls {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    width: 100%;
-  }
-  
-  #tab-route input {
-    width: 100% !important;
-    height: 42px;
-    font-size: 15px;
-    padding: 8px 12px;
-    box-sizing: border-box;
-  }
-  
-  #tab-route #rota {
-    flex: 1;
-    height: 42px;
-    font-size: 0.85em;
-  }
-  
-  #tab-route #locate-button,
-  #tab-route #clear-button {
-    width: 42px;
-    height: 42px;
   }
 }
