@@ -9,81 +9,81 @@ let originCoord = null;
 let destinationCoord = null;
     
 window.addEventListener('load', () => { 
-    // --- Elementos de UI ---
-    const btnGPS = document.getElementById('locate-button'); 
-    const btnFollow = document.getElementById('btn-follow');
-    const btnCenter = document.getElementById('btn-center');
-    const btnClear = document.getElementById('clear-button'); // 🚨 NOVO: Botão Limpar
+    // 🔧 FUNÇÃO HELPER: Pega elemento mobile OU desktop
+    function getElement(mobileId, desktopId) {
+        const mobile = document.getElementById(mobileId);
+        const desktop = document.getElementById(desktopId);
+        return mobile || desktop; // Retorna o que estiver visível
+    }
     
-    const btnGenerateRoute = document.getElementById('rota'); 
-    const inputStart = document.getElementById('start');
-    const inputEnd = document.getElementById('end');
-    // Desativa o botão de gerar rota até que o mapa esteja pronto (evita chamadas antes de mapReady)
-    if (btnGenerateRoute) btnGenerateRoute.disabled = true;
+    // 🔧 FUNÇÃO HELPER: Adiciona listener em ambas as versões
+    function addDualListener(mobileId, desktopId, event, handler) {
+        const mobile = document.getElementById(mobileId);
+        const desktop = document.getElementById(desktopId);
+        
+        if (mobile) mobile.addEventListener(event, handler);
+        if (desktop) desktop.addEventListener(event, handler);
+    }
     
-    // --- Listeners de Geolocalização ---
-    if (btnGPS) {
-        btnGPS.addEventListener('click', () => {
-            // Se o GPS já tem posição, centraliza. Se não, inicia o rastreamento.
-            if (getCurrentPos()) {
-                centerMapOnCurrentPos();
-                showMessage('Mapa centralizado na sua localização.', 'info');
+    // --- Elementos de UI (agora suporta ambas versões) ---
+    addDualListener('locate-button', 'locate-button-desktop', 'click', () => {
+        if (getCurrentPos()) {
+            centerMapOnCurrentPos();
+            showMessage('Mapa centralizado na sua localização.', 'info');
+        } else {
+            showMessage('Iniciando rastreamento GPS...', 'info');
+            getCurrentOnceAndStartWatch(true); 
+        }
+    });
+    
+    addDualListener('btn-follow', 'btn-follow-desktop', 'click', toggleFollow);
+    addDualListener('btn-center', 'btn-center-desktop', 'click', centerMapOnCurrentPos);
+    
+    addDualListener('clear-button', 'clear-button-desktop', 'click', () => {
+        clearRoute();
+        stopWatching();
+        showMessage('Rota e GPS limpos.', 'info');
+        
+        // Limpa AMBOS os pares de inputs
+        const startMobile = document.getElementById('start');
+        const startDesktop = document.getElementById('start-desktop');
+        const endMobile = document.getElementById('end');
+        const endDesktop = document.getElementById('end-desktop');
+        
+        if (startMobile) startMobile.value = '';
+        if (startDesktop) startDesktop.value = '';
+        if (endMobile) endMobile.value = '';
+        if (endDesktop) endDesktop.value = '';
+    });
+    
+    // Botão Gerar Rota
+    addDualListener('rota', 'rota-desktop', 'click', async () => {
+        const inputStart = document.getElementById('start') || document.getElementById('start-desktop');
+        const inputEnd = document.getElementById('end') || document.getElementById('end-desktop');
+        
+        const startValue = inputStart.value.trim();
+        const endValue = inputEnd.value.trim();
+        
+        if (!endValue) {
+            showMessage('Por favor, insira um endereço de DESTINO.', 'error');
+            return;
+        }
+
+        let originValue;
+        if (startValue.toLowerCase() === 'gps' || startValue === '') {
+            const currentPos = getCurrentPos();
+            if (currentPos) {
+                originValue = 'GPS';
             } else {
-                showMessage('Iniciando rastreamento GPS...', 'info');
-                // O parâmetro 'true' indica para centrar na primeira leitura
-                getCurrentOnceAndStartWatch(true); 
-            }
-        });
-    }
-    
-    if (btnFollow) {
-         btnFollow.addEventListener('click', toggleFollow);
-    }
-
-    if (btnCenter) { 
-         btnCenter.addEventListener('click', centerMapOnCurrentPos);
-    }
-
-    if (btnClear) {
-        btnClear.addEventListener('click', () => {
-            clearRoute(); // Função importada de map_utils
-            stopWatching(); // Para o rastreamento GPS
-            showMessage('Rota e GPS limpos.', 'info');
-            // Limpa os campos de input, se necessário
-            if (inputStart) inputStart.value = '';
-            if (inputEnd) inputEnd.value = '';
-        });
-    }
-
-    // --- Listener para o botão 'Gerar Rota' (ID: 'rota') ---
-    if (btnGenerateRoute) {
-        btnGenerateRoute.addEventListener('click', async () => {
-            const startValue = inputStart.value.trim();
-            const endValue = inputEnd.value.trim();
-            
-            if (!endValue) {
-                showMessage('Por favor, insira um endereço de DESTINO.', 'error');
+                showMessage('Origem GPS não disponível. Por favor, insira o endereço de origem.', 'error');
                 return;
             }
-
-            let originValue;
-            if (startValue.toLowerCase() === 'gps' || startValue === '') {
-                // Se a origem é vazia, tenta usar o GPS
-                const currentPos = getCurrentPos();
-                if (currentPos) {
-                    originValue = 'GPS';
-                } else {
-                    showMessage('Origem GPS não disponível. Por favor, insira o endereço de origem.', 'error');
-                    return;
-                }
-            } else {
-                originValue = startValue;
-            }
-            
-            // Chama a nova função de lógica de rota que faz Geocoding e ORS
-            await calculateRouteFromAddresses(originValue, endValue);
-        });
-    }
+        } else {
+            originValue = startValue;
+        }
+        
+        await calculateRouteFromAddresses(originValue, endValue);
+    });
 
     // --- Listener de clique no mapa para Rota (Click-to-Route) ---
     // Ativa o listener apenas quando o mapa estiver pronto
