@@ -52,7 +52,7 @@ function initializeMap() {
 
     // --- Adiciona controle de botões de Zoom customizado (Top-left) ---
     // Cria um controle DOM com dois botões (+ / -) e adiciona ao mapa.
-    function createZoomButtonsControl() {
+    /*function createZoomButtonsControl() {
         const container = document.createElement('div');
         container.className = 'custom-zoom-buttons ol-unselectable ol-control';
 
@@ -73,7 +73,7 @@ function initializeMap() {
 
         const control = new ol.control.Control({ element: container });
         return { control, btnIn, btnOut };
-    }
+    }*/
 
     // 🚨 CRÍTICO: CORREÇÃO DO RACE CONDITION
     // O mapa precisa ser totalmente carregado para evitar o erro.
@@ -98,7 +98,7 @@ function initializeMap() {
             const apiUrl = injected && injected !== 'None' ? injected : window.location.origin;
             setApiBaseUrl(apiUrl);
 
-            try {
+            /*try {
                 const zoomButtons = createZoomButtonsControl();
                 map.addControl(zoomButtons.control);
                 zoomButtons.btnIn.addEventListener('click', () => {
@@ -111,7 +111,7 @@ function initializeMap() {
                 });
             } catch (e) {
                 console.warn('[INIT] Falha ao adicionar botões customizados de zoom:', e);
-            }
+            }*/
 
             document.dispatchEvent(new CustomEvent('mapReady'));
     });
