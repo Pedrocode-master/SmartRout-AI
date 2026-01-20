@@ -4,7 +4,6 @@
    ESTILOS BASE - DESKTOP
    =================================================================== */
 
-/* Painel de controles (versão desktop) */
 #controls,
 #controls-desktop {
   display: flex;
@@ -51,16 +50,15 @@
 }
 
 /* ===================================================================
-   SISTEMA DE TABS - MOBILE ONLY
+   🔧 CORREÇÃO: Sistema de Tabs
    =================================================================== */
 
-/* 🔧 CORREÇÃO: Esconde tabs e conteúdo mobile no desktop */
+/* Desktop: esconde tabs, mostra header normal */
 .header-tabs,
 .tab-content {
   display: none;
 }
 
-/* Desktop header sempre visível por padrão */
 .desktop-header {
   display: flex;
   justify-content: space-between;
@@ -69,16 +67,48 @@
 }
 
 /* ===================================================================
-   RESPONSIVIDADE MOBILE
+   🔧 CORREÇÃO: Controles de Zoom - APENAS NATIVOS
+   =================================================================== */
+
+/* OpenLayers já cria controles nativos, vamos apenas estilizá-los */
+.ol-zoom {
+  left: 12px !important;
+  top: 10px !important;
+  right: auto !important;
+}
+
+.ol-zoom button {
+  background: rgba(255,255,255,0.95) !important;
+  border-radius: 4px !important;
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 18px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important;
+  margin-bottom: 4px !important;
+}
+
+.ol-zoom button:hover {
+  background: white !important;
+}
+
+/* 🔧 Esconde controles customizados duplicados */
+.ol-zoom-custom,
+.custom-zoom-buttons,
+.ol-zoom-reset {
+  display: none !important;
+}
+
+/* ===================================================================
+   MOBILE ONLY
    =================================================================== */
 
 @media (max-width: 768px) {
-  /* 🔧 CORREÇÃO CRÍTICA: Esconde versão desktop completamente */
+  /* 🔧 Esconde versão desktop */
   .desktop-header {
     display: none !important;
   }
   
-  /* 🔧 MOSTRA sistema de tabs */
+  /* 🔧 Mostra tabs */
   .header-tabs {
     display: flex !important;
     gap: 4px;
@@ -86,7 +116,6 @@
     margin-bottom: 8px;
   }
   
-  /* Estilos dos botões de tab */
   .tab-btn {
     flex: 1;
     padding: 10px 8px;
@@ -106,7 +135,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
   
-  /* 🔧 Mostra conteúdo da tab ativa */
+  /* Mostra conteúdo da tab ativa */
   .tab-content.active {
     display: flex !important;
     flex-direction: column;
@@ -114,7 +143,7 @@
     width: 100%;
   }
   
-  /* Header ajustes gerais */
+  /* Header */
   header {
     padding: 8px;
   }
@@ -126,10 +155,7 @@
     width: 100%;
   }
   
-  /* ===================================================================
-     TAB GPS - Layout horizontal para botões
-     =================================================================== */
-  
+  /* Tab GPS - botões lado a lado */
   #tab-gps {
     flex-direction: row !important;
     gap: 6px;
@@ -143,29 +169,25 @@
     min-height: 42px;
   }
   
-  /* ===================================================================
-     TAB ROTA - Layout vertical (inputs + botões)
-     =================================================================== */
-  
+  /* Tab Rota - inputs + botões */
   #tab-route #controls {
     display: flex !important;
     flex-direction: column;
     gap: 6px;
     width: 100%;
-    padding: 0; /* Remove padding extra */
-    box-shadow: none; /* Remove sombra duplicada */
+    padding: 0;
+    box-shadow: none;
     background: transparent;
   }
   
   #tab-route input {
     width: 100% !important;
     height: 42px;
-    font-size: 15px; /* Previne zoom no iOS */
+    font-size: 15px;
     padding: 8px 12px;
     box-sizing: border-box;
   }
   
-  /* Linha de botões (Calcular + ícones) */
   #tab-route #controls > div {
     display: flex;
     gap: 6px;
@@ -185,9 +207,15 @@
     height: 42px;
     flex-shrink: 0;
   }
+  
+  /* 🔧 Zoom maior em mobile */
+  .ol-zoom button {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 20px !important;
+  }
 }
 
-/* Telas muito pequenas */
 @media (max-width: 400px) {
   .tab-btn {
     font-size: 0.75em;
@@ -212,97 +240,5 @@
   #tab-route #clear-button {
     width: 40px;
     height: 40px;
-  }
-}
-
-/* ===================================================================
-   CONTROLES DE ZOOM DO OPENLAYERS
-   =================================================================== */
-
-.ol-zoom-custom {
-  left: 12px;
-  top: 10px;
-  right: auto;
-}
-
-.ol-zoom-custom .ol-zoom-in,
-.ol-zoom-custom .ol-zoom-out {
-  background: rgba(255,255,255,0.95);
-  border-radius: 4px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  font-size: 18px;
-}
-
-.ol-zoom-custom .ol-zoom-in:hover,
-.ol-zoom-custom .ol-zoom-out:hover {
-  background: white;
-}
-
-.ol-zoom-custom .ol-zoom-in,
-.ol-zoom-custom .ol-zoom-out {
-  margin-bottom: 8px;
-}
-
-.custom-zoom-buttons {
-  position: absolute;
-  left: 12px;
-  top: 62px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 1000;
-}
-
-.custom-zoom-buttons button {
-  background: rgba(255,255,255,0.95);
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 4px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.custom-zoom-buttons button:hover {
-  background: white;
-}
-
-.ol-zoom-reset {
-  left: 12px;
-  top: 114px;
-  right: auto;
-}
-
-.ol-zoom-reset button:hover {
-  background: white;
-}
-
-/* Zoom buttons maiores em mobile */
-@media (max-width: 768px) {
-  .ol-zoom-custom .ol-zoom-in,
-  .ol-zoom-custom .ol-zoom-out,
-  .custom-zoom-buttons button {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 20px;
-  }
-  
-  .ol-zoom-custom {
-    top: 10px;
-    left: 10px;
-  }
-  
-  .custom-zoom-buttons {
-    left: 10px;
-    top: 68px;
   }
 }
