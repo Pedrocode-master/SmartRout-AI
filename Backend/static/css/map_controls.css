@@ -109,8 +109,7 @@
 @media (max-width: 768px) {
   /* 🔧 Esconde versão desktop */
   .desktop-header {
-    display: none !important;
-    z-index:1100; 
+    display: none !important; 
   }
   
   /* 🔧 Mostra tabs */
@@ -152,6 +151,8 @@
   /* Header */
   header {
     padding: 8px;
+    z-index: 2000 !important; /* Força o cabeçalho mobile a ficar sobre o mapa */
+    position: relative;
   }
   
   header .header-container {
