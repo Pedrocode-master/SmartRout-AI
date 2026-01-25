@@ -50,6 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index:1100;
 }
 
 /* ===================================================================
@@ -59,7 +60,7 @@
 /* Desktop: esconde tabs, mostra header normal */
 .header-tabs,
 .tab-content {
-  display: none;
+  z-index:1100;
 }
 
 .desktop-header {
