@@ -6,16 +6,17 @@
 
 #controls,
 #controls-desktop {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-  background: white; 
-  padding: 8px 10px; 
-  border-radius: 8px;
-  z-index: 1100; 
   display: flex !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
+  position: absolute;
+  top: 20px;
+  right: 20px; /* Alinha à direita conforme sua imagem, ou use left: 50% + transform para centralizar */
+  background: white;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 1100; /* Acima do mapa e do header base */
+  gap: 8px;
+  align-items: center;
 }
 
 #controls input,
