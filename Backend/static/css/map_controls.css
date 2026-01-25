@@ -164,7 +164,7 @@
   /* Header */
   header {
     padding: 8px;
-    z-index: 2000 !important; /* Força o cabeçalho mobile a ficar sobre o mapa */
+    z-index: 1100 !important; /* Força o cabeçalho mobile a ficar sobre o mapa */
     position: relative;
   }
   
