@@ -6,22 +6,32 @@
 
 #controls,
 #controls-desktop {
-  display: flex !important;
-  position: absolute;
-  top: 20px;
-  right: 20px; /* Alinha à direita conforme sua imagem, ou use left: 50% + transform para centralizar */
-  background: white;
-  padding: 10px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  z-index: 1100; /* Acima do mapa e do header base */
-  gap: 8px;
-  align-items: center;
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center; /* Centraliza os itens internamente */
+    gap: 10px;
+    
+    background: white;
+    padding: 10px 20px;
+    border-radius: 50px; /* Estilo pílula para não cortar as quinas */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    
+    /* Posicionamento fixo no centro do topo */
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    max-width: 95vw; /* Impede que ele saia da tela em monitores menores */
+    z-index: 1200;
 }
 
 #controls input,
 #controls-desktop input {
   padding: 8px;
+  width: 150px !important; /* Tamanho fixo ideal */
+  min-width: 100px;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
