@@ -30,13 +30,17 @@ header {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1100; /* Alto o suficiente para ficar sobre o mapa */
-    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparente para ver o mapa abaixo */
-    padding: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    pointer-events: auto; /* Garante que cliques nos inputs e botões funcionem */
+    width: 100%; /* Garante que cubra a largura toda */
+    z-index: 1100;
+    background-color: transparent; /* Remova o fundo branco daqui para não cobrir o mapa todo */
+    padding: 0; /* Remova o padding para não empurrar os controles */
+    pointer-events: none; /* Deixa clicar no mapa através do header */
 }
 
+/* Garante que os controles dentro do header voltem a aceitar cliques */
+#controls-desktop, .header-tabs, .tab-content {
+    pointer-events: auto;
+}
 /* ---------------------------------------------------- */
 /* Estilos gerais para feedback e mensagens de status */
 #message-container {
