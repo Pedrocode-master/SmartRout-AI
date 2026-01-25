@@ -30,11 +30,12 @@ header {
     top: 0;
     left: 0;
     right: 0;
-    width: 100%; /* Garante que cubra a largura toda */
+    width: 100%;
+    height: 0; /* 🚨 ESSENCIAL: O container do header não tem altura, assim não bloqueia o que está abaixo */
     z-index: 1100;
-    background-color: transparent; /* Remova o fundo branco daqui para não cobrir o mapa todo */
-    padding: 0; /* Remova o padding para não empurrar os controles */
-    pointer-events: none; /* Deixa clicar no mapa através do header */
+    background-color: transparent;
+    padding: 0;
+    pointer-events: none; /* Mantém para o mapa ser clicável através dele */
 }
 
 /* Garante que os controles dentro do header voltem a aceitar cliques */
