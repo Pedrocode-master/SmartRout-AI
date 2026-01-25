@@ -90,6 +90,7 @@ window.addEventListener('load', () => {
     document.addEventListener('mapReady', () => {
         const map = getMapInstance();
         
+        const btnGenerateRoute = document.getElementById('rota') || document.getElementById('rota-desktop');
         // Habilita os botões de rota/limpar agora que o mapa e a fonte estão prontos
         if (btnGenerateRoute) btnGenerateRoute.disabled = false;
         const btnClearLocal = document.getElementById('clear-button');
