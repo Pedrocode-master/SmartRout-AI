@@ -84,6 +84,7 @@
   cursor: pointer;
   display: none; /* Escondido por padrão, mostrado por JS */
   font-weight: bold;
+  pointer-events: auto;
 }
 
 /* Estilos de Informações de Rota */
