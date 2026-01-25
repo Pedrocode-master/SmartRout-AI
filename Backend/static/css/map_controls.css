@@ -37,6 +37,7 @@
   padding: 0 12px;
   display: flex;
   align-items: center;
+  z-index:1100;
   justify-content: center;
 }
 
@@ -60,7 +61,7 @@
 /* Desktop: esconde tabs, mostra header normal */
 .header-tabs,
 .tab-content {
-  z-index:1100;
+  display:none;
 }
 
 .desktop-header {
