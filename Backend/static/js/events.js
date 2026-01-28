@@ -1,9 +1,9 @@
-// events.js (Código Corrigido para IDs do Header e Fluxo de Rota)
+// events.js (VERSÃO CORRIGIDA - inputStart/inputEnd no escopo correto)
 import { clearRoute } from './map_utils.js'; 
-import { getCurrentOnceAndStartWatch, toggleFollow, centerMapOnCurrentPos, stopWatching } from './geolocation.js'; // 🚨 NOVO: stopWatching
+import { getCurrentOnceAndStartWatch, toggleFollow, centerMapOnCurrentPos, stopWatching } from './geolocation.js';
 import { showMessage } from './ui_utils.js';
 import { getMapInstance, getCurrentPos, setOriginCoords, setDestinationCoords } from './map_data.js';
-import { calculateRouteFromAddresses, calculateAndDrawRoute } from './route_logic.js'; // 🚨 NOVO: calculateRouteFromAddresses
+import { calculateRouteFromAddresses, calculateAndDrawRoute } from './route_logic.js';
 
 let originCoord = null;
 let destinationCoord = null;
@@ -13,7 +13,7 @@ window.addEventListener('load', () => {
     function getElement(mobileId, desktopId) {
         const mobile = document.getElementById(mobileId);
         const desktop = document.getElementById(desktopId);
-        return mobile || desktop; // Retorna o que estiver visível
+        return mobile || desktop;
     }
     
     // 🔧 FUNÇÃO HELPER: Adiciona listener em ambas as versões
@@ -86,12 +86,10 @@ window.addEventListener('load', () => {
     });
 
     // --- Listener de clique no mapa para Rota (Click-to-Route) ---
-    // Ativa o listener apenas quando o mapa estiver pronto
     document.addEventListener('mapReady', () => {
         const map = getMapInstance();
         
         const btnGenerateRoute = document.getElementById('rota') || document.getElementById('rota-desktop');
-        // Habilita os botões de rota/limpar agora que o mapa e a fonte estão prontos
         if (btnGenerateRoute) btnGenerateRoute.disabled = false;
         const btnClearLocal = document.getElementById('clear-button');
         if (btnClearLocal) btnClearLocal.disabled = false;
@@ -103,11 +101,16 @@ window.addEventListener('load', () => {
                 const lat = lonLat[1];
                 const clickCoord = { lon: lon, lat: lat };
 
+                // 🔧 CORREÇÃO: Busca os inputs aqui dentro da função
+                const inputStart = document.getElementById('start') || document.getElementById('start-desktop');
+                const inputEnd = document.getElementById('end') || document.getElementById('end-desktop');
+
                 if (originCoord === null) {
                     // 1. Primeiro clique: Define Origem
                     originCoord = clickCoord;
                     showMessage(`📍 Origem por clique: ${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'info');
-                    // Opcional: Pré-preencher o campo de origem com as coordenadas
+                    
+                    // Pré-preencher o campo de origem
                     if (inputStart) inputStart.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`; 
                     
                 } else {
@@ -115,15 +118,17 @@ window.addEventListener('load', () => {
                     destinationCoord = clickCoord;
                     showMessage(`🏁 Destino por clique: ${lat.toFixed(4)}, ${lon.toFixed(4)}. Processando...`, 'info');
                     
-                    // Opcional: Pré-preencher o campo de destino com as coordenadas
+                    // Pré-preencher o campo de destino
                     if (inputEnd) inputEnd.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`; 
 
-                    clearRoute(); // Limpa marcadores e rotas antigas
+                    clearRoute();
                     
-                    // Usa a função que aceita COORDENADAS (calculateAndDrawRoute, que é o window.drawRoute)
                     if (window.drawRoute) { 
                         window.drawRoute(originCoord, destinationCoord)
-                            .then(() => { originCoord = null; destinationCoord = null; }) // Reseta para o próximo ciclo
+                            .then(() => { 
+                                originCoord = null; 
+                                destinationCoord = null; 
+                            })
                             .catch(error => {
                                 console.error('Erro rota por clique:', error);
                                 originCoord = null; 
@@ -137,7 +142,6 @@ window.addEventListener('load', () => {
                 }
             };
 
-            // Salva a referência para possível remoção futura (não usado, mas boa prática)
             window.mapClickRef = mapClickHandler;
             map.on('click', mapClickHandler); 
             console.log("✅ Listener de clique no mapa ativado.");
@@ -146,6 +150,7 @@ window.addEventListener('load', () => {
             console.error("❌ Erro Crítico: mapReady disparou, mas a instância do mapa é null.");
         }
     });
+
 // 🆕 SISTEMA DE TABS MOBILE
 const tabButtons = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -184,7 +189,7 @@ function syncButtons() {
                 desktop.click();
             });
             desktop.addEventListener('click', (e) => {
-                if (e.target === desktop) { // Evita loop infinito
+                if (e.target === desktop) {
                     mobile.click();
                 }
             });
